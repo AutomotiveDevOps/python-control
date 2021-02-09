@@ -49,7 +49,7 @@
 	src/xferfcn.py (_convertToTransferFunction), src/statesp.py
 	(StateSpace.__rmul__), src/margins.py (stability_margins): changed
 	exception syntax to be python3 compatibile (works for python2.6+)
-	
+
 2013-06-10  Richard Murray  <murray@altura-2.local>
 
 	* src/xferfcn.py (TransferFunction.horner): small fix to docstring
@@ -65,15 +65,15 @@
 	* tests/frd_test.py (TestFRD.testFeedback): added test of default
 	argument to feedback() for FRD type
 
-	* src/bdalg.py (feedback): 
+	* src/bdalg.py (feedback):
 	* src/frdata.py (FRD.feedback):
 	* src/statesp.py (StateSpace.feedback):
 	patched in default value of 1 for other system in feedback().
 	Contributed by Ryan Krauss <rkrauss@siue.edu>
-	
+
 	* tests/xferfcn_test.py (TestXferFcn.testEvalFrMIMO)
 	(TestXferFcn.testEvalFrSISO): added tests of __call__ version of
-	evalfr. 
+	evalfr.
 
 	* src/xferfcn.py (TransferFunction.__call__): patched in new
 	__call__ functionality from Ryan Krauss <rkrauss@siue.edu>, but
@@ -95,7 +95,7 @@
 
 	* src/bdalg.py: implemented append and connect functions (old
           version, with indexes, not with names)
-	  
+
 	* src/matlab.py: added connect, append, minreal
 
 	* src/xferfcn.py and src/statesp.py: added/corrected
@@ -182,7 +182,7 @@
 	be python3 compatible
 
 	* examples/pvtol-nested.py: converted print statements to be python3
-	compatible 
+	compatible
 
 	* doc/class_strings.rst: added FRD class to list of classes that
 	show up in the user documentation
@@ -209,7 +209,7 @@
 	converting a matrix to a constant system
 
 	* src/modelsimp.py (minreal): removed extraneous code (moved to
-	xferfcn.py) 
+	xferfcn.py)
 
 	* src/frdata.py: new file implementing FRD data type, contributed by
 	M.M. (Rene) van Paassen
@@ -223,7 +223,7 @@
 	* src/xferfcn.py, src/statesp.py, src/lti.py, src/bdalg.py:
 	constants must now be of type 'int' rather than 'long' (for python 3
 	compatibility)
-	
+
 	* tests/statefbk_test.py, tests/slycot_convert_test.py,
 	tests/convert_test.py: added import __future__ calls for python 3
 	compatibility; updated print calls
@@ -343,7 +343,7 @@
 2012-10-07  Richard Murray  <murray@altura.local>
 
 	* src/matlab.py (c2d): MATLAB compatible function (just calls
-	sample_system) 
+	sample_system)
 
 	* tests/discrete_test.py (TestDiscrete.test_sample_system): unit
 	test for sampling
@@ -369,7 +369,7 @@
 
 	* src/statesp.py (StateSpace.__init__): Moved dt
 	initialization to Lti object initialization
-	
+
 	* src/xferfcn.py (TransferFunction.__init__): Moved dt
 	initialization to Lti object initialization
 
@@ -597,7 +597,7 @@
 	stability_margins, phase_crossover_frequencies
 
 	* src/phaseplot.py: changed PhasePlot and boxgrid to phase_plot,
-	box_grid 
+	box_grid
 
 	* src/timeresp.py: changed ForcedReponse, InitialReponse,
 	ImpulseReponse and StepResponse to forced_response,
@@ -609,7 +609,7 @@
 2011-07-25  Richard Murray  <murray@malabar.local>
 
 	* tests/phaseplot_test.py: updated unit tests to use new call
-	signatures 
+	signatures
 
 	* examples/phaseplots.py: updated calls to PhasePlot to use new
 	argument structure
@@ -710,7 +710,7 @@
 2011-06-22  Richard Murray  <murray@malabar.local>
 
 	* doc/intro.rst: fixed some small types
-	
+
 	* doc/control.tex: removed (no longer needed)
 
 2011-06-22  Richard Murray  <murray@malabar.local>
@@ -730,7 +730,7 @@
 	* src/timeresp.py: added file documentation + split out and updated
 	copyright info.  Small corrections to documentation.
 	(InitialResponse): Added missing transpose argument in call to
-	ForcedResponse 
+	ForcedResponse
 
 	* src/matlab.py: minor changes to documentation to avoid line wraps
 	on standard (80 col) terminal window
@@ -760,7 +760,7 @@
 	* src/timeresp.py (ForcedResponse): swapped order of input and time
 	arguments for linear response, following Eike's comment "T must
 	always be supplied by the user, but U has a useful default value of
-	0." 
+	0."
 
 	* src/matlab.py: moved code for lsim, initial, step, and impulse to
 	timeresp.py and put in new routes that call timeresp.* versions of
@@ -774,26 +774,26 @@
 	ImpulseResponse.  These versions use Eike Welk's input ordering.
 
 	* examples/pvtol-nested.py: calls to step() had screwed up inputs.
-	Fixed. 
+	Fixed.
 
 2011-06-17  Richard Murray  <murray@malabar.local>
 
 	* src/matlab.py: added MIMO extensions from Eike Welk on 12 Jun
 	2011: adds MIMO capabilities for ``lsim``, ``step``, ``impulse``,
-	``initial`` 
+	``initial``
 
 	* src/matlab.py: added changes from Eike Welk on 12 May 2011:
 
 	  - An implementation of the four simulation functions ``lsim``,
-  	    ``step``, ``initial``, and ``impulse`` of the module ``matlab``. 
+  	    ``step``, ``initial``, and ``impulse`` of the module ``matlab``.
 
           - Adds a function ``dcgain`` to the ``matlab`` module, which
   	    computes the gain of a linear system for steady state and
-	    constant input. 
+	    constant input.
 
           - The patch contains a bug fix for class ``StateSpace``, which
 	    enables it to work properly together with Scipy's ``signal``
-	    module.  
+	    module.
 
           - The simulation functions' return values are changed (back?) to
 	    arrays, because matrices confuse Matplotlib.
@@ -897,10 +897,10 @@
 	the errors clearly.  Use verbose=True to turn back on.
 
 	* src/statesp.py (_convertToStateSpace): removed "buggy" print
-	statements 
+	statements
 
 	* src/xferfcn.py (_convertToTransferFunction): removed "buggy" print
-	statements 
+	statements
 
 	* tests/nichols_test.py (TestStateSpace.testNgrid): updated testcode
 	to turn off grid in initial Nichols chart plot.
@@ -942,7 +942,7 @@
 	The idea in putting the code here is that you can do 'setup.py test'
 	during installation to make sure everything is working correctly.
 	The test code would normally *not* be callable from the installed
-	module. 
+	module.
 
 	* tests/*_test.py: moved from src/Test*.py
 
@@ -1041,7 +1041,7 @@
 	* setup.py: updated package number to v0.3, changed URL to
 	sourceforge wiki
 
-------------------	
+------------------
 31 May 2010, RMM: added place() function using slycot
   * New module: statefbk - functions to design state feedback controllers
   * Uses Enrico Avventi slycot wrappers (http://github.com/avventi/Slycot)
@@ -1064,7 +1064,7 @@
   * added options for plotting in dB, Hz
 
 27 Dec 2009, GR: important bug fix: feedback TFs were being divided by two
-  
+
 10 Oct 09, RMM: reset matplotlib import in secord-matlab
   * Using 'from matplotlib import *' causes error with figures
   * On my other computer, got error when trying to import 'matplotlib.pyplot'
@@ -1103,7 +1103,7 @@
   * Using simpler text format since emacs python mode doesn't support
     ChangeLog entries anyway
 
-
+
 Local Variables:
 mode:text
 End:

@@ -1,14 +1,13 @@
 """conftest.py - pytest local plugins and fixtures"""
-
-from contextlib import contextmanager
-from distutils.version import StrictVersion
 import os
 import sys
+from contextlib import contextmanager
+from distutils.version import StrictVersion
 
 import matplotlib as mpl
 import numpy as np
-import scipy as sp
 import pytest
+import scipy as sp
 
 import control
 
@@ -16,16 +15,19 @@ TEST_MATRIX_AND_ARRAY = os.getenv("PYTHON_CONTROL_ARRAY_AND_MATRIX") == "1"
 
 # some common pytest marks. These can be used as test decorators or in
 # pytest.param(marks=)
-slycotonly = pytest.mark.skipif(not control.exception.slycot_check(),
-                                reason="slycot not installed")
-noscipy0 = pytest.mark.skipif(StrictVersion(sp.__version__) < "1.0",
-                              reason="requires SciPy 1.0 or greater")
-nopython2 = pytest.mark.skipif(sys.version_info < (3, 0),
-                               reason="requires Python 3+")
-matrixfilter = pytest.mark.filterwarnings("ignore:.*matrix subclass:"
-                                          "PendingDeprecationWarning")
-matrixerrorfilter = pytest.mark.filterwarnings("error:.*matrix subclass:"
-                                               "PendingDeprecationWarning")
+slycotonly = pytest.mark.skipif(
+    not control.exception.slycot_check(), reason="slycot not installed"
+)
+noscipy0 = pytest.mark.skipif(
+    StrictVersion(sp.__version__) < "1.0", reason="requires SciPy 1.0 or greater"
+)
+nopython2 = pytest.mark.skipif(sys.version_info < (3, 0), reason="requires Python 3+")
+matrixfilter = pytest.mark.filterwarnings(
+    "ignore:.*matrix subclass:PendingDeprecationWarning"
+)
+matrixerrorfilter = pytest.mark.filterwarnings(
+    "error:.*matrix subclass:PendingDeprecationWarning"
+)
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -43,12 +45,18 @@ def control_defaults():
     # assert that nothing changed it without reverting
     assert control.config.defaults == the_defaults
 
-@pytest.fixture(scope="function", autouse=TEST_MATRIX_AND_ARRAY,
-                params=[pytest.param("arrayout", marks=matrixerrorfilter),
-                        pytest.param("matrixout", marks=matrixfilter)])
+
+@pytest.fixture(
+    scope="function",
+    autouse=TEST_MATRIX_AND_ARRAY,
+    params=[
+        pytest.param("arrayout", marks=matrixerrorfilter),
+        pytest.param("matrixout", marks=matrixfilter),
+    ],
+)
 def matarrayout(request):
     """Switch the config to use np.ndarray and np.matrix as returns"""
-    restore = control.config.defaults['statesp.use_numpy_matrix']
+    restore = control.config.defaults["statesp.use_numpy_matrix"]
     control.use_numpy_matrix(request.param == "matrixout", warn=False)
     yield
     control.use_numpy_matrix(restore, warn=False)
@@ -59,14 +67,13 @@ def ismatarrayout(obj):
 
     note that isinstance(np.matrix(obj), np.ndarray) is True
     """
-    use_matrix = control.config.defaults['statesp.use_numpy_matrix']
-    return (isinstance(obj, np.ndarray)
-            and isinstance(obj, np.matrix) == use_matrix)
+    use_matrix = control.config.defaults["statesp.use_numpy_matrix"]
+    return isinstance(obj, np.ndarray) and isinstance(obj, np.matrix) == use_matrix
 
 
 def asmatarrayout(obj):
     """Return a object according to the configured default"""
-    use_matrix = control.config.defaults['statesp.use_numpy_matrix']
+    use_matrix = control.config.defaults["statesp.use_numpy_matrix"]
     matarray = np.asmatrix if use_matrix else np.asarray
     return matarray(obj)
 
@@ -74,7 +81,7 @@ def asmatarrayout(obj):
 @contextmanager
 def check_deprecated_matrix():
     """Check that a call produces a deprecation warning because of np.matrix"""
-    use_matrix = control.config.defaults['statesp.use_numpy_matrix']
+    use_matrix = control.config.defaults["statesp.use_numpy_matrix"]
     if use_matrix:
         with pytest.deprecated_call():
             try:
@@ -85,16 +92,17 @@ def check_deprecated_matrix():
         yield
 
 
-@pytest.fixture(scope="function",
-                params=[p for p, usebydefault in
-                        [(pytest.param(np.array,
-                                       id="arrayin"),
-                          True),
-                         (pytest.param(np.matrix,
-                                       id="matrixin",
-                                       marks=matrixfilter),
-                          False)]
-                        if usebydefault or TEST_MATRIX_AND_ARRAY])
+@pytest.fixture(
+    scope="function",
+    params=[
+        p
+        for p, usebydefault in [
+            (pytest.param(np.array, id="arrayin"), True),
+            (pytest.param(np.matrix, id="matrixin", marks=matrixfilter), False),
+        ]
+        if usebydefault or TEST_MATRIX_AND_ARRAY
+    ],
+)
 def matarrayin(request):
     """Use array and matrix to construct input data in tests"""
     return request.param

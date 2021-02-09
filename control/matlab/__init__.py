@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 The :mod:`control.matlab` module contains a number of functions that emulate
 some of the functionality of MATLAB.  The intent of these functions is to
@@ -6,7 +5,6 @@ provide a simple interface to the python control systems library
 (python-control) for people who are familiar with the MATLAB Control Systems
 Toolbox (tm).
 """
-
 """Copyright (c) 2009 by California Institute of Technology
 All rights reserved.
 
@@ -49,15 +47,21 @@ Revised: Kevin K. Chen, Dec 10
 $Id$
 
 """
-
 # Import MATLAB-like functions that are defined in other packages
-from scipy.signal import zpk2ss, ss2zpk, tf2zpk, zpk2tf
-from numpy import linspace, logspace
+import sys
+
+from numpy import linspace
+from numpy import logspace
+from scipy.signal import ss2zpk
+from scipy.signal import tf2zpk
+from scipy.signal import zpk2ss
+from scipy.signal import zpk2tf
 
 # If configuration is not yet set, import and use MATLAB defaults
-import sys
-if not ('.config' in sys.modules):
+
+if not (".config" in sys.modules):
     from .. import config
+
     config.use_matlab_defaults()
 
 # Control system library
@@ -89,6 +93,7 @@ from .wrappers import *
 
 # Set up defaults corresponding to MATLAB conventions
 from ..config import *
+
 use_matlab_defaults()
 
 r"""

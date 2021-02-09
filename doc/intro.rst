@@ -29,7 +29,7 @@ In terms of the python-control package more specifically, here are
 some thing to keep in mind:
 
 * You must include commas in vectors.  So [1 2 3] must be [1, 2, 3].
-* Functions that return multiple arguments use tuples.  
+* Functions that return multiple arguments use tuples.
 * You cannot use braces for collections; use tuples instead.
 
 Installation
@@ -50,7 +50,7 @@ To install using pip::
 
 Many parts of `python-control` will work without `slycot`, but some
 functionality is limited or absent, and installation of `slycot` is
-recommended.  
+recommended.
 
 *Note*: the `slycot` library only works on some platforms, mostly
 linux-based.  Users should check to insure that slycot is installed

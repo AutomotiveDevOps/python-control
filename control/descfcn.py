@@ -5,27 +5,31 @@
 # This module adds functions for carrying out analysis of systems with
 # memoryless nonlinear feedback functions using describing functions.
 #
-
 """The :mod:~control.descfcn` module contains function for performing
 closed loop analysis of systems with memoryless nonlinearities using
 describing function analysis.
 
 """
-
 import math
-import numpy as np
-import matplotlib.pyplot as plt
-import scipy
 from warnings import warn
+
+import matplotlib.pyplot as plt
+import numpy as np
+import scipy
 
 from .freqplot import nyquist_plot
 
-__all__ = ['describing_function', 'describing_function_plot',
-           'DescribingFunctionNonlinearity', 'friction_backlash_nonlinearity',
-           'relay_hysteresis_nonlinearity', 'saturation_nonlinearity']
+__all__ = [
+    "describing_function",
+    "describing_function_plot",
+    "DescribingFunctionNonlinearity",
+    "friction_backlash_nonlinearity",
+    "relay_hysteresis_nonlinearity",
+    "saturation_nonlinearity",
+]
 
 # Class for nonlinearities with a built-in describing function
-class DescribingFunctionNonlinearity():
+class DescribingFunctionNonlinearity:
     """Base class for nonlinear systems with a describing function
 
     This class is intended to be used as a base class for nonlinear functions
@@ -35,6 +39,7 @@ class DescribingFunctionNonlinearity():
     instance state).
 
     """
+
     def __init__(self):
         """Initailize a describing function nonlinearity (optional)"""
         pass
@@ -42,7 +47,8 @@ class DescribingFunctionNonlinearity():
     def __call__(self, A):
         """Evaluate the nonlinearity at a (scalar) input value"""
         raise NotImplementedError(
-            "__call__() not implemented for this function (internal error)")
+            "__call__() not implemented for this function (internal error)"
+        )
 
     def describing_function(self, A):
         """Return the describing function for a nonlinearity
@@ -53,7 +59,8 @@ class DescribingFunctionNonlinearity():
 
         """
         raise NotImplementedError(
-            "describing function not implemented for this function")
+            "describing function not implemented for this function"
+        )
 
     def _isstatic(self):
         """Return True if the function has no internal state (memoryless)
@@ -68,12 +75,14 @@ class DescribingFunctionNonlinearity():
 
     # Utility function used to compute common describing functions
     def _f(self, x):
-        return math.copysign(1, x) if abs(x) > 1 else \
-            (math.asin(x) + x * math.sqrt(1 - x**2)) * 2 / math.pi
+        return (
+            math.copysign(1, x)
+            if abs(x) > 1
+            else (math.asin(x) + x * math.sqrt(1 - x ** 2)) * 2 / math.pi
+        )
 
 
-def describing_function(
-        F, A, num_points=100, zero_check=True, try_method=True):
+def describing_function(F, A, num_points=100, zero_check=True, try_method=True):
     """Numerical compute the describing function of a nonlinear function
 
     The describing function of a nonlinearity is given by magnitude and phase
@@ -122,7 +131,7 @@ def describing_function(
 
     """
     # If there is an analytical solution, trying using that first
-    if try_method and hasattr(F, 'describing_function'):
+    if try_method and hasattr(F, "describing_function"):
         try:
             return np.vectorize(F.describing_function, otypes=[complex])(A)
         except NotImplementedError:
@@ -156,28 +165,27 @@ def describing_function(
     #
 
     # Evaluate over a full range of angles (leave off endpoint a la DFT)
-    theta, dtheta = np.linspace(
-        0, 2*np.pi, num_points, endpoint=False, retstep=True)
+    theta, dtheta = np.linspace(0, 2 * np.pi, num_points, endpoint=False, retstep=True)
     sin_theta = np.sin(theta)
     cos_theta = np.cos(theta)
 
     # See if this is a static nonlinearity (assume not, just in case)
-    if not hasattr(F, '_isstatic') or not F._isstatic():
+    if not hasattr(F, "_isstatic") or not F._isstatic():
         # Initialize any internal state by going through an initial cycle
         for x in np.atleast_1d(A).min() * sin_theta:
-            F(x)                # ignore the result
+            F(x)  # ignore the result
 
     # Go through all of the amplitudes we were given
     retdf = np.empty(np.shape(A), dtype=complex)
-    df = retdf                  # Access to the return array
-    df.shape = (-1, )           # as a 1D array
+    df = retdf  # Access to the return array
+    df.shape = (-1,)  # as a 1D array
     for i, a in enumerate(np.atleast_1d(A)):
         # Make sure we got a valid argument
         if a == 0:
             # Check to make sure the function has zero output with zero input
-            if zero_check and np.squeeze(F(0.)) != 0:
+            if zero_check and np.squeeze(F(0.0)) != 0:
                 raise ValueError("function must evaluate to zero at zero")
-            df[i] = 1.
+            df[i] = 1.0
             continue
         elif a < 0:
             raise ValueError("cannot evaluate describing function for A < 0")
@@ -186,11 +194,11 @@ def describing_function(
         scale = dtheta / np.pi / a
 
         # Evaluate the function along a sinusoid
-        F_eval = np.array([F(x) for x in a*sin_theta]).squeeze()
+        F_eval = np.array([F(x) for x in a * sin_theta]).squeeze()
 
         # Compute the prjections onto sine and cosine
-        df_real = (F_eval @ sin_theta) * scale     # = M_1 \cos\phi / a
-        df_imag = (F_eval @ cos_theta) * scale     # = M_1 \sin\phi / a
+        df_real = (F_eval @ sin_theta) * scale  # = M_1 \cos\phi / a
+        df_imag = (F_eval @ cos_theta) * scale  # = M_1 \sin\phi / a
 
         df[i] = df_real + 1j * df_imag
 
@@ -199,7 +207,8 @@ def describing_function(
 
 
 def describing_function_plot(
-        H, F, A, omega=None, refine=True, label="%5.2g @ %-5.2g", **kwargs):
+    H, F, A, omega=None, refine=True, label="%5.2g @ %-5.2g", **kwargs
+):
     """Plot a Nyquist plot with a describing function for a nonlinear system.
 
     This function generates a Nyquist plot for a closed loop system consisting
@@ -246,7 +255,7 @@ def describing_function_plot(
 
     # Compute the describing function
     df = describing_function(F, A)
-    N_vals = -1/df
+    N_vals = -1 / df
 
     # Now add the describing function curve to the plot
     plt.plot(N_vals.real, N_vals.imag)
@@ -256,14 +265,15 @@ def describing_function_plot(
     for i in range(N_vals.size - 1):
         for j in range(H_vals.size - 1):
             intersect = _find_intersection(
-                N_vals[i], N_vals[i+1], H_vals[j], H_vals[j+1])
+                N_vals[i], N_vals[i + 1], H_vals[j], H_vals[j + 1]
+            )
             if intersect == None:
                 continue
 
             # Found an intersection, compute a and omega
             s_amp, s_omega = intersect
-            a_guess = (1 - s_amp) * A[i] + s_amp * A[i+1]
-            omega_guess = (1 - s_omega) * H_omega[j] + s_omega * H_omega[j+1]
+            a_guess = (1 - s_amp) * A[i] + s_amp * A[i + 1]
+            omega_guess = (1 - s_omega) * H_omega[j] + s_omega * H_omega[j + 1]
 
             # Refine the coarse estimate to get better intersection point
             a_final, omega_final = a_guess, omega_guess
@@ -274,10 +284,9 @@ def describing_function_plot(
                     # Note: imposing bounds messed up the optimization (?)
                     if x[0] < 0 or x[1] < 0:
                         return 1
-                    return abs(1 + H(1j * x[1]) *
-                               describing_function(F, x[0]))**2
-                res = scipy.optimize.minimize(
-                    _cost, [a_guess, omega_guess])
+                    return abs(1 + H(1j * x[1]) * describing_function(F, x[0])) ** 2
+
+                res = scipy.optimize.minimize(_cost, [a_guess, omega_guess])
                 # bounds=[(A[i], A[i+1]), (H_omega[j], H_omega[j+1])])
 
                 if not res.success:
@@ -307,7 +316,7 @@ def _find_intersection(L1a, L1b, L2a, L2b):
     # Set up components of the solution: b = M s
     b = L1a - L2a
     detM = L1t.imag * L2t.real - L1t.real * L2t.imag
-    if abs(detM) < 1e-8:        # TODO: fix magic number
+    if abs(detM) < 1e-8:  # TODO: fix magic number
         return None
 
     # Solve for the intersection points on each line segment
@@ -343,9 +352,10 @@ class saturation_nonlinearity(DescribingFunctionNonlinearity):
     the nonlinearity for analysis.
 
     """
+
     def __init__(self, ub=1, lb=None):
         # Create the describing function nonlinearity object
-        super(saturation_nonlinearity, self).__init__()
+        super().__init__()
 
         # Process arguments
         if lb == None:
@@ -371,11 +381,12 @@ class saturation_nonlinearity(DescribingFunctionNonlinearity):
             raise ValueError("cannot evaluate describing function for A < 0")
 
         if self.lb <= A and A <= self.ub:
-            return 1.
+            return 1.0
         else:
-            alpha, beta = math.asin(self.ub/A), math.asin(-self.lb/A)
-            return (math.sin(alpha + beta) * math.cos(alpha - beta) +
-                    (alpha + beta)) / math.pi
+            alpha, beta = math.asin(self.ub / A), math.asin(-self.lb / A)
+            return (
+                math.sin(alpha + beta) * math.cos(alpha - beta) + (alpha + beta)
+            ) / math.pi
 
 
 # Relay with hysteresis (FBS2e, Example 10.12)
@@ -396,14 +407,15 @@ class relay_hysteresis_nonlinearity(DescribingFunctionNonlinearity):
     illustrated in Figure 10.20 of FBS2e).
 
     """
+
     def __init__(self, b, c):
         # Create the describing function nonlinearity object
-        super(relay_hysteresis_nonlinearity, self).__init__()
+        super().__init__()
 
         # Initialize the state to bottom branch
-        self.branch = -1        # lower branch
-        self.b = b              # relay output value
-        self.c = c              # size of hysteresis region
+        self.branch = -1  # lower branch
+        self.b = b  # relay output value
+        self.c = c  # size of hysteresis region
 
     def __call__(self, x):
         if x > self.c:
@@ -429,8 +441,8 @@ class relay_hysteresis_nonlinearity(DescribingFunctionNonlinearity):
         if A < self.c:
             return np.nan
 
-        df_real = 4 * self.b * math.sqrt(1 - (self.c/A)**2) / (A * math.pi)
-        df_imag = -4 * self.b * self.c / (math.pi * A**2)
+        df_real = 4 * self.b * math.sqrt(1 - (self.c / A) ** 2) / (A * math.pi)
+        df_imag = -4 * self.b * self.c / (math.pi * A ** 2)
         return df_real + 1j * df_imag
 
 
@@ -454,17 +466,17 @@ class friction_backlash_nonlinearity(DescribingFunctionNonlinearity):
 
     def __init__(self, b):
         # Create the describing function nonlinearity object
-        super(friction_backlash_nonlinearity, self).__init__()
+        super().__init__()
 
-        self.b = b              # backlash distance
-        self.center = 0         # current center position
+        self.b = b  # backlash distance
+        self.center = 0  # current center position
 
     def __call__(self, x):
         # If we are outside the backlash, move and shift the center
-        if x - self.center > self.b/2:
-            self.center = x - self.b/2
-        elif x - self.center < -self.b/2:
-            self.center = x + self.b/2
+        if x - self.center > self.b / 2:
+            self.center = x - self.b / 2
+        elif x - self.center < -self.b / 2:
+            self.center = x + self.b / 2
         return self.center
 
     def _isstatic(self):
@@ -475,9 +487,9 @@ class friction_backlash_nonlinearity(DescribingFunctionNonlinearity):
         if A < 0:
             raise ValueError("cannot evaluate describing function for A < 0")
 
-        if A <= self.b/2:
+        if A <= self.b / 2:
             return 0
 
-        df_real = (1 + self._f(1 - self.b/A)) / 2
-        df_imag = -(2 * self.b/A - (self.b/A)**2) / math.pi
+        df_real = (1 + self._f(1 - self.b / A)) / 2
+        df_imag = -(2 * self.b / A - (self.b / A) ** 2) / math.pi
         return df_real + 1j * df_imag

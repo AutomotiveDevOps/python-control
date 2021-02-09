@@ -2,11 +2,13 @@
 
 RMM, 30 Mar 2011 (based on TestSlycot from v0.4a)
 """
-
 import numpy as np
 import pytest
 
-from control import bode, rss, ss, tf
+from control import bode
+from control import rss
+from control import ss
+from control import tf
 from control.tests.conftest import slycotonly
 
 numTests = 5
@@ -76,38 +78,72 @@ class TestSlycot:
         from slycot import tb04ad, td04ad
 
         ssOriginal = rss(states, outputs, inputs)
-        if (verbose):
-            print('====== Original SS ==========')
+        if verbose:
+            print("====== Original SS ==========")
             print(ssOriginal)
-            print('states=', states)
-            print('inputs=', inputs)
-            print('outputs=', outputs)
+            print("states=", states)
+            print("inputs=", inputs)
+            print("outputs=", outputs)
 
-        tfOriginal_Actrb, tfOriginal_Bctrb, tfOriginal_Cctrb,\
-            tfOrigingal_nctrb, tfOriginal_index,\
-            tfOriginal_dcoeff, tfOriginal_ucoeff =\
-            tb04ad(states, inputs, outputs,
-                   ssOriginal.A, ssOriginal.B,
-                   ssOriginal.C, ssOriginal.D, tol1=0.0)
+        (
+            tfOriginal_Actrb,
+            tfOriginal_Bctrb,
+            tfOriginal_Cctrb,
+            tfOrigingal_nctrb,
+            tfOriginal_index,
+            tfOriginal_dcoeff,
+            tfOriginal_ucoeff,
+        ) = tb04ad(
+            states,
+            inputs,
+            outputs,
+            ssOriginal.A,
+            ssOriginal.B,
+            ssOriginal.C,
+            ssOriginal.D,
+            tol1=0.0,
+        )
 
-        ssTransformed_nr, ssTransformed_A, ssTransformed_B,\
-            ssTransformed_C, ssTransformed_D\
-            = td04ad('R', inputs, outputs, tfOriginal_index,
-                     tfOriginal_dcoeff, tfOriginal_ucoeff,
-                     tol=0.0)
+        (
+            ssTransformed_nr,
+            ssTransformed_A,
+            ssTransformed_B,
+            ssTransformed_C,
+            ssTransformed_D,
+        ) = td04ad(
+            "R",
+            inputs,
+            outputs,
+            tfOriginal_index,
+            tfOriginal_dcoeff,
+            tfOriginal_ucoeff,
+            tol=0.0,
+        )
 
-        tfTransformed_Actrb, tfTransformed_Bctrb,\
-            tfTransformed_Cctrb, tfTransformed_nctrb,\
-            tfTransformed_index, tfTransformed_dcoeff,\
-            tfTransformed_ucoeff = tb04ad(
-                ssTransformed_nr, inputs, outputs,
-                ssTransformed_A, ssTransformed_B,
-                ssTransformed_C, ssTransformed_D, tol1=0.0)
+        (
+            tfTransformed_Actrb,
+            tfTransformed_Bctrb,
+            tfTransformed_Cctrb,
+            tfTransformed_nctrb,
+            tfTransformed_index,
+            tfTransformed_dcoeff,
+            tfTransformed_ucoeff,
+        ) = tb04ad(
+            ssTransformed_nr,
+            inputs,
+            outputs,
+            ssTransformed_A,
+            ssTransformed_B,
+            ssTransformed_C,
+            ssTransformed_D,
+            tol1=0.0,
+        )
         # print('size(Trans_A)=',ssTransformed_A.shape)
-        if (verbose):
-            print('===== Transformed SS ==========')
-            print(ss(ssTransformed_A, ssTransformed_B,
-                     ssTransformed_C, ssTransformed_D))
+        if verbose:
+            print("===== Transformed SS ==========")
+            print(
+                ss(ssTransformed_A, ssTransformed_B, ssTransformed_C, ssTransformed_D)
+            )
             # print('Trans_nr=',ssTransformed_nr
             # print('tfOrig_index=',tfOriginal_index)
             # print('tfOrig_ucoeff=',tfOriginal_ucoeff)
@@ -125,8 +161,8 @@ class TestSlycot:
         #    tfOriginal_dcoeff, tfTransformed_dcoeff, decimal=3)
 
     @pytest.mark.parametrize("testNum", np.arange(numTests) + 1)
-    @pytest.mark.parametrize("inputs", np.arange(1) + 1) # SISO only
-    @pytest.mark.parametrize("outputs", np.arange(1) + 1) # SISO only
+    @pytest.mark.parametrize("inputs", np.arange(1) + 1)  # SISO only
+    @pytest.mark.parametrize("outputs", np.arange(1) + 1)  # SISO only
     @pytest.mark.parametrize("states", np.arange(maxStates) + 1)
     def testFreqResp(self, states, outputs, inputs, testNum, verbose):
         """Compare bode responses.
@@ -139,54 +175,83 @@ class TestSlycot:
 
         ssOriginal = rss(states, outputs, inputs)
 
-        tfOriginal_Actrb, tfOriginal_Bctrb, tfOriginal_Cctrb,\
-            tfOrigingal_nctrb, tfOriginal_index,\
-            tfOriginal_dcoeff, tfOriginal_ucoeff = tb04ad(
-                states, inputs, outputs, ssOriginal.A,
-                ssOriginal.B, ssOriginal.C, ssOriginal.D,
-                tol1=0.0)
+        (
+            tfOriginal_Actrb,
+            tfOriginal_Bctrb,
+            tfOriginal_Cctrb,
+            tfOrigingal_nctrb,
+            tfOriginal_index,
+            tfOriginal_dcoeff,
+            tfOriginal_ucoeff,
+        ) = tb04ad(
+            states,
+            inputs,
+            outputs,
+            ssOriginal.A,
+            ssOriginal.B,
+            ssOriginal.C,
+            ssOriginal.D,
+            tol1=0.0,
+        )
 
-        ssTransformed_nr, ssTransformed_A, ssTransformed_B,\
-            ssTransformed_C, ssTransformed_D\
-            = td04ad('R', inputs, outputs, tfOriginal_index,
-                     tfOriginal_dcoeff, tfOriginal_ucoeff,
-                     tol=0.0)
+        (
+            ssTransformed_nr,
+            ssTransformed_A,
+            ssTransformed_B,
+            ssTransformed_C,
+            ssTransformed_D,
+        ) = td04ad(
+            "R",
+            inputs,
+            outputs,
+            tfOriginal_index,
+            tfOriginal_dcoeff,
+            tfOriginal_ucoeff,
+            tol=0.0,
+        )
 
-        tfTransformed_Actrb, tfTransformed_Bctrb,\
-            tfTransformed_Cctrb, tfTransformed_nctrb,\
-            tfTransformed_index, tfTransformed_dcoeff,\
-            tfTransformed_ucoeff = tb04ad(
-                ssTransformed_nr, inputs, outputs,
-                ssTransformed_A, ssTransformed_B,
-                ssTransformed_C, ssTransformed_D,
-                tol1=0.0)
+        (
+            tfTransformed_Actrb,
+            tfTransformed_Bctrb,
+            tfTransformed_Cctrb,
+            tfTransformed_nctrb,
+            tfTransformed_index,
+            tfTransformed_dcoeff,
+            tfTransformed_ucoeff,
+        ) = tb04ad(
+            ssTransformed_nr,
+            inputs,
+            outputs,
+            ssTransformed_A,
+            ssTransformed_B,
+            ssTransformed_C,
+            ssTransformed_D,
+            tol1=0.0,
+        )
 
         numTransformed = np.array(tfTransformed_ucoeff)
         denTransformed = np.array(tfTransformed_dcoeff)
         numOriginal = np.array(tfOriginal_ucoeff)
         denOriginal = np.array(tfOriginal_dcoeff)
 
-        ssTransformed = ss(ssTransformed_A,
-                           ssTransformed_B,
-                           ssTransformed_C,
-                           ssTransformed_D)
+        ssTransformed = ss(
+            ssTransformed_A, ssTransformed_B, ssTransformed_C, ssTransformed_D
+        )
         for inputNum in range(inputs):
             for outputNum in range(outputs):
-                [ssOriginalMag, ssOriginalPhase, freq] =\
-                    bode(ssOriginal, plot=False)
-                [tfOriginalMag, tfOriginalPhase, freq] =\
-                    bode(tf(numOriginal[outputNum][inputNum],
-                            denOriginal[outputNum]),
-                         plot=False)
-                [ssTransformedMag, ssTransformedPhase, freq] =\
-                    bode(ssTransformed,
-                         freq,
-                         plot=False)
-                [tfTransformedMag, tfTransformedPhase, freq] =\
-                    bode(tf(numTransformed[outputNum][inputNum],
-                            denTransformed[outputNum]),
-                         freq,
-                         plot=False)
+                [ssOriginalMag, ssOriginalPhase, freq] = bode(ssOriginal, plot=False)
+                [tfOriginalMag, tfOriginalPhase, freq] = bode(
+                    tf(numOriginal[outputNum][inputNum], denOriginal[outputNum]),
+                    plot=False,
+                )
+                [ssTransformedMag, ssTransformedPhase, freq] = bode(
+                    ssTransformed, freq, plot=False
+                )
+                [tfTransformedMag, tfTransformedPhase, freq] = bode(
+                    tf(numTransformed[outputNum][inputNum], denTransformed[outputNum]),
+                    freq,
+                    plot=False,
+                )
                 # print('numOrig=',
                 #  numOriginal[outputNum][inputNum])
                 # print('denOrig=',
@@ -196,18 +261,20 @@ class TestSlycot:
                 # print('denTrans=',
                 #  denTransformed[outputNum])
                 np.testing.assert_array_almost_equal(
-                    ssOriginalMag, tfOriginalMag, decimal=3)
+                    ssOriginalMag, tfOriginalMag, decimal=3
+                )
                 np.testing.assert_array_almost_equal(
-                    ssOriginalPhase, tfOriginalPhase,
-                    decimal=3)
+                    ssOriginalPhase, tfOriginalPhase, decimal=3
+                )
                 np.testing.assert_array_almost_equal(
-                    ssOriginalMag, ssTransformedMag, decimal=3)
+                    ssOriginalMag, ssTransformedMag, decimal=3
+                )
                 np.testing.assert_array_almost_equal(
-                    ssOriginalPhase, ssTransformedPhase,
-                    decimal=3)
+                    ssOriginalPhase, ssTransformedPhase, decimal=3
+                )
                 np.testing.assert_array_almost_equal(
-                    tfOriginalMag, tfTransformedMag, decimal=3)
+                    tfOriginalMag, tfTransformedMag, decimal=3
+                )
                 np.testing.assert_array_almost_equal(
-                    tfOriginalPhase, tfTransformedPhase,
-                    decimal=2)
-
+                    tfOriginalPhase, tfTransformedPhase, decimal=2
+                )

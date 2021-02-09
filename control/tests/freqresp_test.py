@@ -5,19 +5,23 @@ RMM, 30 May 2016 (based on timeresp_test.py)
 This is a rudimentary set of tests for frequency response functions,
 including bode plots.
 """
+import math
 
 import matplotlib.pyplot as plt
 import numpy as np
-from numpy.testing import assert_allclose
-import math
 import pytest
+from numpy.testing import assert_allclose
 
 import control as ctrl
+from control.freqplot import bode_plot
+from control.freqplot import nyquist_plot
+from control.matlab import bode
+from control.matlab import rss
+from control.matlab import ss
+from control.matlab import tf
 from control.statesp import StateSpace
-from control.xferfcn import TransferFunction
-from control.matlab import ss, tf, bode, rss
-from control.freqplot import bode_plot, nyquist_plot
 from control.tests.conftest import slycotonly
+from control.xferfcn import TransferFunction
 
 pytestmark = pytest.mark.usefixtures("mplcleanup")
 
@@ -38,6 +42,7 @@ def ss_mimo():
     C = np.array([[1, 0]])
     D = np.array([[0, 0]])
     return StateSpace(A, B, C, D)
+
 
 def test_freqresp_siso(ss_siso):
     """Test SISO frequency response"""
@@ -66,8 +71,8 @@ def test_bode_basic(ss_siso):
     omega = bode_plot(tf_siso, plot=False, omega_limits=(1, 100))[2]
     assert_allclose(omega[0], 1)
     assert_allclose(omega[-1], 100)
-    assert len(bode_plot(tf_siso, plot=False, omega=np.logspace(-1,1,10))[0])\
-         == 10
+    assert len(bode_plot(tf_siso, plot=False, omega=np.logspace(-1, 1, 10))[0]) == 10
+
 
 def test_nyquist_basic(ss_siso):
     """Test nyquist plot call (Very basic)"""
@@ -79,7 +84,7 @@ def test_nyquist_basic(ss_siso):
     omega = nyquist_plot(tf_siso, plot=False, omega_limits=(1, 100))[2]
     assert_allclose(omega[0], 1)
     assert_allclose(omega[-1], 100)
-    assert len(nyquist_plot(tf_siso, plot=False, omega=np.logspace(-1, 1, 10))[0])==10
+    assert len(nyquist_plot(tf_siso, plot=False, omega=np.logspace(-1, 1, 10))[0]) == 10
 
 
 @pytest.mark.filterwarnings("ignore:.*non-positive left xlim:UserWarning")
@@ -127,10 +132,10 @@ def test_superimpose():
 
     # Now add a line to the magnitude plot and make sure if is there
     for ax in plt.gcf().axes:
-        if ax.get_label() == 'control-bode-magnitude':
+        if ax.get_label() == "control-bode-magnitude":
             break
 
-    ax.semilogx([1e-2, 1e1], 20 * np.log10([1, 1]), 'k-')
+    ax.semilogx([1e-2, 1e1], 20 * np.log10([1, 1]), "k-")
     assert len(ax.get_lines()) == 2
 
 
@@ -149,19 +154,26 @@ def test_doubleint():
 
 @pytest.mark.parametrize(
     "Hz, Wcp, Wcg",
-    [pytest.param(False, 6.0782869, 10., id="omega"),
-     pytest.param(True, 0.9673894, 1.591549, id="Hz")])
+    [
+        pytest.param(False, 6.0782869, 10.0, id="omega"),
+        pytest.param(True, 0.9673894, 1.591549, id="Hz"),
+    ],
+)
 @pytest.mark.parametrize(
     "deg, p0, pm",
-    [pytest.param(False, -np.pi, -2.748266, id="rad"),
-     pytest.param(True, -180, -157.46405841, id="deg")])
+    [
+        pytest.param(False, -np.pi, -2.748266, id="rad"),
+        pytest.param(True, -180, -157.46405841, id="deg"),
+    ],
+)
 @pytest.mark.parametrize(
     "dB, maginfty1, maginfty2, gminv",
-    [pytest.param(False, 1, 1e-8, 0.4, id="mag"),
-     pytest.param(True, 0, -1e+5, -7.9588, id="dB")])
-def test_bode_margin(dB, maginfty1, maginfty2, gminv,
-                     deg, p0, pm,
-                     Hz, Wcp, Wcg):
+    [
+        pytest.param(False, 1, 1e-8, 0.4, id="mag"),
+        pytest.param(True, 0, -1e5, -7.9588, id="dB"),
+    ],
+)
+def test_bode_margin(dB, maginfty1, maginfty2, gminv, deg, p0, pm, Hz, Wcp, Wcg):
     """Test bode margins"""
     num = [1000]
     den = [1, 25, 100, 0]
@@ -171,38 +183,23 @@ def test_bode_margin(dB, maginfty1, maginfty2, gminv,
     fig = plt.gcf()
     allaxes = fig.get_axes()
 
-    mag_to_infinity = (np.array([Wcp, Wcp]),
-                       np.array([maginfty1, maginfty2]))
-    assert_allclose(mag_to_infinity,
-                    allaxes[0].lines[2].get_data(),
-                    rtol=1e-5)
+    mag_to_infinity = (np.array([Wcp, Wcp]), np.array([maginfty1, maginfty2]))
+    assert_allclose(mag_to_infinity, allaxes[0].lines[2].get_data(), rtol=1e-5)
 
-    gm_to_infinty = (np.array([Wcg, Wcg]),
-                     np.array([gminv, maginfty2]))
-    assert_allclose(gm_to_infinty,
-                    allaxes[0].lines[3].get_data(),
-                    rtol=1e-5)
+    gm_to_infinty = (np.array([Wcg, Wcg]), np.array([gminv, maginfty2]))
+    assert_allclose(gm_to_infinty, allaxes[0].lines[3].get_data(), rtol=1e-5)
 
-    one_to_gm = (np.array([Wcg, Wcg]),
-                 np.array([maginfty1, gminv]))
-    assert_allclose(one_to_gm, allaxes[0].lines[4].get_data(),
-                    rtol=1e-5)
+    one_to_gm = (np.array([Wcg, Wcg]), np.array([maginfty1, gminv]))
+    assert_allclose(one_to_gm, allaxes[0].lines[4].get_data(), rtol=1e-5)
 
-    pm_to_infinity = (np.array([Wcp, Wcp]),
-                      np.array([1e5, pm]))
-    assert_allclose(pm_to_infinity,
-                    allaxes[1].lines[2].get_data(),
-                    rtol=1e-5)
+    pm_to_infinity = (np.array([Wcp, Wcp]), np.array([1e5, pm]))
+    assert_allclose(pm_to_infinity, allaxes[1].lines[2].get_data(), rtol=1e-5)
 
-    pm_to_phase = (np.array([Wcp, Wcp]),
-                   np.array([pm, p0]))
-    assert_allclose(pm_to_phase, allaxes[1].lines[3].get_data(),
-                    rtol=1e-5)
+    pm_to_phase = (np.array([Wcp, Wcp]), np.array([pm, p0]))
+    assert_allclose(pm_to_phase, allaxes[1].lines[3].get_data(), rtol=1e-5)
 
-    phase_to_infinity = (np.array([Wcg, Wcg]),
-                         np.array([0, p0]))
-    assert_allclose(phase_to_infinity, allaxes[1].lines[4].get_data(),
-                    rtol=1e-5)
+    phase_to_infinity = (np.array([Wcg, Wcg]), np.array([0, p0]))
+    assert_allclose(phase_to_infinity, allaxes[1].lines[4].get_data(), rtol=1e-5)
 
 
 @pytest.fixture
@@ -212,15 +209,17 @@ def dsystem_dt(request):
     sys = rss(3, 1, 1)
 
     # MIMO state space systems with either fixed or unspecified sampling times
-    A = [[-3., 4., 2.], [-1., -3., 0.], [2., 5., 3.]]
-    B = [[1., 4.], [-3., -3.], [-2., 1.]]
-    C = [[4., 2., -3.], [1., 4., 3.]]
-    D = [[-2., 4.], [0., 1.]]
+    A = [[-3.0, 4.0, 2.0], [-1.0, -3.0, 0.0], [2.0, 5.0, 3.0]]
+    B = [[1.0, 4.0], [-3.0, -3.0], [-2.0, 1.0]]
+    C = [[4.0, 2.0, -3.0], [1.0, 4.0, 3.0]]
+    D = [[-2.0, 4.0], [0.0, 1.0]]
 
     dt = request.param
-    systems = {'sssiso': StateSpace(sys.A, sys.B, sys.C, sys.D, dt),
-               'ssmimo': StateSpace(A, B, C, D, dt),
-               'tf': TransferFunction([1, 1], [1, 2, 1], dt)}
+    systems = {
+        "sssiso": StateSpace(sys.A, sys.B, sys.C, sys.D, dt),
+        "ssmimo": StateSpace(A, B, C, D, dt),
+        "tf": TransferFunction([1, 1], [1, 2, 1], dt),
+    }
     return systems
 
 
@@ -232,8 +231,7 @@ def dsystem_type(request, dsystem_dt):
 
 
 @pytest.mark.parametrize("dsystem_dt", [0.1, True], indirect=True)
-@pytest.mark.parametrize("dsystem_type", ['sssiso', 'ssmimo', 'tf'],
-                         indirect=True)
+@pytest.mark.parametrize("dsystem_type", ["sssiso", "ssmimo", "tf"], indirect=True)
 def test_discrete(dsystem_type):
     """Test discrete time frequency response"""
     dsys = dsystem_type
@@ -250,7 +248,7 @@ def test_discrete(dsystem_type):
         dsys.frequency_response(omega_bad)
 
     # Test bode plots (currently only implemented for SISO)
-    if (dsys.ninputs == 1 and dsys.noutputs == 1):
+    if dsys.ninputs == 1 and dsys.noutputs == 1:
         # Generic call (frequency range calculated automatically)
         bode(dsys)
 
@@ -279,7 +277,7 @@ def test_options(editsdefaults):
     numpoints1 = len(fig1.axes[0].lines[0].get_data()[0])
 
     # Same transfer function, but add a decade on each end
-    ctrl.config.set_defaults('freqplot', feature_periphery_decades=2)
+    ctrl.config.set_defaults("freqplot", feature_periphery_decades=2)
     fig2 = plt.figure()
     ctrl.bode_plot(sys, dB=False, deg=True, Hz=False)
     left2, right2 = fig2.axes[0].xaxis.get_data_interval()
@@ -290,7 +288,8 @@ def test_options(editsdefaults):
 
     # Same transfer function, but add more points to the plot
     ctrl.config.set_defaults(
-        'freqplot', feature_periphery_decades=2, number_of_samples=13)
+        "freqplot", feature_periphery_decades=2, number_of_samples=13
+    )
     fig3 = plt.figure()
     ctrl.bode_plot(sys, dB=False, deg=True, Hz=False)
     numpoints3 = len(fig3.axes[0].lines[0].get_data()[0])
@@ -299,68 +298,101 @@ def test_options(editsdefaults):
     assert numpoints1 != numpoints3
     assert numpoints3 == 13
 
+
 @pytest.mark.parametrize(
     "TF, initial_phase, default_phase, expected_phase",
-    [pytest.param(ctrl.tf([1], [1, 0]),
-                  None, -math.pi/2, -math.pi/2,         id="order1, default"),
-     pytest.param(ctrl.tf([1], [1, 0]),
-                  180, -math.pi/2, 3*math.pi/2,         id="order1, 180"),
-     pytest.param(ctrl.tf([1], [1, 0, 0]),
-                  None, -math.pi, -math.pi,             id="order2, default"),
-     pytest.param(ctrl.tf([1], [1, 0, 0]),
-                  180, -math.pi, math.pi,               id="order2, 180"),
-     pytest.param(ctrl.tf([1], [1, 0, 0, 0]),
-                  None, -3*math.pi/2, -3*math.pi/2,     id="order2, default"),
-     pytest.param(ctrl.tf([1], [1, 0, 0, 0]),
-                  180, -3*math.pi/2, math.pi/2,         id="order2, 180"),
-     pytest.param(ctrl.tf([1], [1, 0, 0, 0, 0]),
-                  None, 0, 0,                           id="order4, default"),
-     pytest.param(ctrl.tf([1], [1, 0, 0, 0, 0]),
-                  180, 0, 0,                            id="order4, 180"),
-     pytest.param(ctrl.tf([1], [1, 0, 0, 0, 0]),
-                  -360, 0, -2*math.pi,                  id="order4, -360"),
-     ])
+    [
+        pytest.param(
+            ctrl.tf([1], [1, 0]), None, -math.pi / 2, -math.pi / 2, id="order1, default"
+        ),
+        pytest.param(
+            ctrl.tf([1], [1, 0]), 180, -math.pi / 2, 3 * math.pi / 2, id="order1, 180"
+        ),
+        pytest.param(
+            ctrl.tf([1], [1, 0, 0]), None, -math.pi, -math.pi, id="order2, default"
+        ),
+        pytest.param(ctrl.tf([1], [1, 0, 0]), 180, -math.pi, math.pi, id="order2, 180"),
+        pytest.param(
+            ctrl.tf([1], [1, 0, 0, 0]),
+            None,
+            -3 * math.pi / 2,
+            -3 * math.pi / 2,
+            id="order2, default",
+        ),
+        pytest.param(
+            ctrl.tf([1], [1, 0, 0, 0]),
+            180,
+            -3 * math.pi / 2,
+            math.pi / 2,
+            id="order2, 180",
+        ),
+        pytest.param(ctrl.tf([1], [1, 0, 0, 0, 0]), None, 0, 0, id="order4, default"),
+        pytest.param(ctrl.tf([1], [1, 0, 0, 0, 0]), 180, 0, 0, id="order4, 180"),
+        pytest.param(
+            ctrl.tf([1], [1, 0, 0, 0, 0]), -360, 0, -2 * math.pi, id="order4, -360"
+        ),
+    ],
+)
 def test_initial_phase(TF, initial_phase, default_phase, expected_phase):
     # Check initial phase of standard transfer functions
     mag, phase, omega = ctrl.bode(TF)
-    assert(abs(phase[0] - default_phase) < 0.1)
+    assert abs(phase[0] - default_phase) < 0.1
 
     # Now reset the initial phase to +180 and see if things work
     mag, phase, omega = ctrl.bode(TF, initial_phase=initial_phase)
-    assert(abs(phase[0] - expected_phase) < 0.1)
+    assert abs(phase[0] - expected_phase) < 0.1
 
     # Make sure everything works in rad/sec as well
     if initial_phase:
-        plt.xscale('linear')  # avoids xlim warning on next line
+        plt.xscale("linear")  # avoids xlim warning on next line
         plt.clf()  # clear previous figure (speeds things up)
         mag, phase, omega = ctrl.bode(
-            TF, initial_phase=initial_phase/180. * math.pi, deg=False)
-        assert(abs(phase[0] - expected_phase) < 0.1)
+            TF, initial_phase=initial_phase / 180.0 * math.pi, deg=False
+        )
+        assert abs(phase[0] - expected_phase) < 0.1
 
 
 @pytest.mark.parametrize(
     "TF, wrap_phase, min_phase, max_phase",
-    [pytest.param(ctrl.tf([1], [1, 0]),
-                  None, -math.pi/2, 0,              id="order1, default"),
-     pytest.param(ctrl.tf([1], [1, 0]),
-                  True, -math.pi, math.pi,          id="order1, True"),
-     pytest.param(ctrl.tf([1], [1, 0]),
-                  -270, -3*math.pi/2, math.pi/2,    id="order1, -270"),
-     pytest.param(ctrl.tf([1], [1, 0, 0, 0]),
-                  None, -3*math.pi/2, 0,            id="order3, default"),
-     pytest.param(ctrl.tf([1], [1, 0, 0, 0]),
-                  True, -math.pi, math.pi,          id="order3, True"),
-     pytest.param(ctrl.tf([1], [1, 0, 0, 0]),
-                  -270, -3*math.pi/2, math.pi/2,    id="order3, -270"),
-     pytest.param(ctrl.tf([1], [1, 0, 0, 0, 0, 0]),
-                  True, -3*math.pi/2, 0,            id="order5, default"),
-     pytest.param(ctrl.tf([1], [1, 0, 0, 0, 0, 0]),
-                  True, -math.pi, math.pi,          id="order5, True"),
-     pytest.param(ctrl.tf([1], [1, 0, 0, 0, 0, 0]),
-                  -270, -3*math.pi/2, math.pi/2,    id="order5, -270"),
-    ])
-
+    [
+        pytest.param(ctrl.tf([1], [1, 0]), None, -math.pi / 2, 0, id="order1, default"),
+        pytest.param(ctrl.tf([1], [1, 0]), True, -math.pi, math.pi, id="order1, True"),
+        pytest.param(
+            ctrl.tf([1], [1, 0]), -270, -3 * math.pi / 2, math.pi / 2, id="order1, -270"
+        ),
+        pytest.param(
+            ctrl.tf([1], [1, 0, 0, 0]), None, -3 * math.pi / 2, 0, id="order3, default"
+        ),
+        pytest.param(
+            ctrl.tf([1], [1, 0, 0, 0]), True, -math.pi, math.pi, id="order3, True"
+        ),
+        pytest.param(
+            ctrl.tf([1], [1, 0, 0, 0]),
+            -270,
+            -3 * math.pi / 2,
+            math.pi / 2,
+            id="order3, -270",
+        ),
+        pytest.param(
+            ctrl.tf([1], [1, 0, 0, 0, 0, 0]),
+            True,
+            -3 * math.pi / 2,
+            0,
+            id="order5, default",
+        ),
+        pytest.param(
+            ctrl.tf([1], [1, 0, 0, 0, 0, 0]), True, -math.pi, math.pi, id="order5, True"
+        ),
+        pytest.param(
+            ctrl.tf([1], [1, 0, 0, 0, 0, 0]),
+            -270,
+            -3 * math.pi / 2,
+            math.pi / 2,
+            id="order5, -270",
+        ),
+    ],
+)
 def test_phase_wrap(TF, wrap_phase, min_phase, max_phase):
     mag, phase, omega = ctrl.bode(TF, wrap_phase=wrap_phase)
-    assert(min(phase) >= min_phase)
-    assert(max(phase) <= max_phase)
+    assert min(phase) >= min_phase
+    assert max(phase) <= max_phase

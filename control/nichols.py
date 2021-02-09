@@ -7,7 +7,6 @@ Routines in this module:
 nichols.nichols_plot aliased as nichols.nichols
 nichols.nichols_grid
 """
-
 # nichols.py - Nichols plot
 #
 # Contributed by Allan McInnes <Allan.McInnes@canterbury.ac.nz>
@@ -48,18 +47,18 @@ nichols.nichols_grid
 # SUCH DAMAGE.
 #
 # $Id: freqplot.py 139 2011-03-30 16:19:59Z murrayrm $
-
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+
+from . import config
 from .ctrlutil import unwrap
 from .freqplot import _default_frequency_range
-from . import config
 
-__all__ = ['nichols_plot', 'nichols', 'nichols_grid']
+__all__ = ["nichols_plot", "nichols", "nichols_grid"]
 
 # Default parameters values for the nichols module
 _nichols_defaults = {
-    'nichols.grid': True,
+    "nichols.grid": True,
 }
 
 
@@ -82,11 +81,10 @@ def nichols_plot(sys_list, omega=None, grid=None):
     None
     """
     # Get parameter values
-    grid = config._get_param('nichols', 'grid', grid, True)
-
+    grid = config._get_param("nichols", "grid", grid, True)
 
     # If argument was a singleton, turn it into a list
-    if not getattr(sys_list, '__iter__', False):
+    if not getattr(sys_list, "__iter__", False):
         sys_list = (sys_list,)
 
     # Select a default range if none is provided
@@ -102,24 +100,24 @@ def nichols_plot(sys_list, omega=None, grid=None):
         # Convert to Nichols-plot format (phase in degrees,
         # and magnitude in dB)
         x = unwrap(np.degrees(phase), 360)
-        y = 20*np.log10(mag)
+        y = 20 * np.log10(mag)
 
         # Generate the plot
         plt.plot(x, y)
 
-    plt.xlabel('Phase (deg)')
-    plt.ylabel('Magnitude (dB)')
-    plt.title('Nichols Plot')
+    plt.xlabel("Phase (deg)")
+    plt.ylabel("Magnitude (dB)")
+    plt.title("Nichols Plot")
 
     # Mark the -180 point
-    plt.plot([-180], [0], 'r+')
+    plt.plot([-180], [0], "r+")
 
     # Add grid
     if grid:
         nichols_grid()
 
 
-def nichols_grid(cl_mags=None, cl_phases=None, line_style='dotted'):
+def nichols_grid(cl_mags=None, cl_phases=None, line_style="dotted"):
     """Nichols chart grid
 
     Plots a Nichols chart grid on the current axis, or creates a new chart
@@ -153,41 +151,56 @@ def nichols_grid(cl_mags=None, cl_phases=None, line_style='dotted'):
         # Default chart magnitudes
         # The key set of magnitudes are always generated, since this
         # guarantees a recognizable Nichols chart grid.
-        key_cl_mags = np.array([-40.0, -20.0, -12.0, -6.0, -3.0, -1.0, -0.5,
-                                0.0, 0.25, 0.5, 1.0, 3.0, 6.0, 12.0])
+        key_cl_mags = np.array(
+            [
+                -40.0,
+                -20.0,
+                -12.0,
+                -6.0,
+                -3.0,
+                -1.0,
+                -0.5,
+                0.0,
+                0.25,
+                0.5,
+                1.0,
+                3.0,
+                6.0,
+                12.0,
+            ]
+        )
 
         # Extend the range of magnitudes if necessary. The extended arange
         # will end up empty if no extension is required. Assumes that
         # closed-loop magnitudes are approximately aligned with open-loop
         # magnitudes beyond the value of np.min(key_cl_mags)
         cl_mag_step = -20.0  # dB
-        extended_cl_mags = np.arange(np.min(key_cl_mags),
-                                     ol_mag_min + cl_mag_step, cl_mag_step)
+        extended_cl_mags = np.arange(
+            np.min(key_cl_mags), ol_mag_min + cl_mag_step, cl_mag_step
+        )
         cl_mags = np.concatenate((extended_cl_mags, key_cl_mags))
 
     # N-circle phases (should be in the range -360 to 0)
     if cl_phases is None:
         # Choose a reasonable set of default phases (denser if the open-loop
         # data is restricted to a relatively small range of phases).
-        key_cl_phases = np.array([-0.25, -45.0, -90.0, -180.0, -270.0,
-                                  -325.0, -359.75])
+        key_cl_phases = np.array([-0.25, -45.0, -90.0, -180.0, -270.0, -325.0, -359.75])
         if np.abs(ol_phase_max - ol_phase_min) < 90.0:
             other_cl_phases = np.arange(-10.0, -360.0, -10.0)
         else:
             other_cl_phases = np.arange(-10.0, -360.0, -20.0)
         cl_phases = np.concatenate((key_cl_phases, other_cl_phases))
     else:
-        assert ((-360.0 < np.min(cl_phases)) and (np.max(cl_phases) < 0.0))
+        assert (-360.0 < np.min(cl_phases)) and (np.max(cl_phases) < 0.0)
 
     # Find the M-contours
-    m = m_circles(cl_mags, phase_min=np.min(cl_phases),
-                  phase_max=np.max(cl_phases))
-    m_mag = 20*np.log10(np.abs(m))
+    m = m_circles(cl_mags, phase_min=np.min(cl_phases), phase_max=np.max(cl_phases))
+    m_mag = 20 * np.log10(np.abs(m))
     m_phase = np.mod(np.degrees(np.angle(m)), -360.0)  # Unwrap
 
     # Find the N-contours
     n = n_circles(cl_phases, mag_min=np.min(cl_mags), mag_max=np.max(cl_mags))
-    n_mag = 20*np.log10(np.abs(n))
+    n_mag = 20 * np.log10(np.abs(n))
     n_phase = np.mod(np.degrees(np.angle(n)), -360.0)  # Unwrap
 
     # Plot the contours behind other plot elements.
@@ -196,27 +209,42 @@ def nichols_grid(cl_mags=None, cl_phases=None, line_style='dotted'):
     # over the range -360 < phase < 0. Given the range
     # the base chart is computed over, the phase offset should be 0
     # for -360 < ol_phase_min < 0.
-    phase_offset_min = 360.0*np.ceil(ol_phase_min/360.0)
-    phase_offset_max = 360.0*np.ceil(ol_phase_max/360.0) + 360.0
+    phase_offset_min = 360.0 * np.ceil(ol_phase_min / 360.0)
+    phase_offset_max = 360.0 * np.ceil(ol_phase_max / 360.0) + 360.0
     phase_offsets = np.arange(phase_offset_min, phase_offset_max, 360.0)
 
     for phase_offset in phase_offsets:
         # Draw M and N contours
-        plt.plot(m_phase + phase_offset, m_mag, color='lightgray',
-                 linestyle=line_style, zorder=0)
-        plt.plot(n_phase + phase_offset, n_mag, color='lightgray',
-                 linestyle=line_style, zorder=0)
+        plt.plot(
+            m_phase + phase_offset,
+            m_mag,
+            color="lightgray",
+            linestyle=line_style,
+            zorder=0,
+        )
+        plt.plot(
+            n_phase + phase_offset,
+            n_mag,
+            color="lightgray",
+            linestyle=line_style,
+            zorder=0,
+        )
 
         # Add magnitude labels
-        for x, y, m in zip(m_phase[:][-1] + phase_offset, m_mag[:][-1],
-                           cl_mags):
-            align = 'right' if m < 0.0 else 'left'
-            plt.text(x, y, str(m) + ' dB', size='small', ha=align,
-                     color='gray')
+        for x, y, m in zip(m_phase[:][-1] + phase_offset, m_mag[:][-1], cl_mags):
+            align = "right" if m < 0.0 else "left"
+            plt.text(x, y, str(m) + " dB", size="small", ha=align, color="gray")
 
     # Fit axes to generated chart
-    plt.axis([phase_offset_min - 360.0, phase_offset_max - 360.0,
-              np.min(cl_mags), np.max([ol_mag_max, default_ol_mag_max])])
+    plt.axis(
+        [
+            phase_offset_min - 360.0,
+            phase_offset_max - 360.0,
+            np.min(cl_mags),
+            np.max([ol_mag_max, default_ol_mag_max]),
+        ]
+    )
+
 
 #
 # Utility functions
@@ -246,10 +274,10 @@ def closed_loop_contours(Gcl_mags, Gcl_phases):
     # Compute the contours in Gcl-space. Since we're given closed-loop
     # magnitudes and phases, this is just a case of converting them into
     # a complex number.
-    Gcl = Gcl_mags*np.exp(1.j*Gcl_phases)
+    Gcl = Gcl_mags * np.exp(1.0j * Gcl_phases)
 
     # Invert Gcl = Gol/(1+Gol) to map the contours into the open-loop space
-    return Gcl/(1.0 - Gcl)
+    return Gcl / (1.0 - Gcl)
 
 
 def m_circles(mags, phase_min=-359.75, phase_max=-0.25):
@@ -274,7 +302,7 @@ def m_circles(mags, phase_min=-359.75, phase_max=-0.25):
     # Convert magnitudes and phase range into a grid suitable for
     # building contours
     phases = np.radians(np.linspace(phase_min, phase_max, 2000))
-    Gcl_mags, Gcl_phases = np.meshgrid(10.0**(mags/20.0), phases)
+    Gcl_mags, Gcl_phases = np.meshgrid(10.0 ** (mags / 20.0), phases)
     return closed_loop_contours(Gcl_mags, Gcl_phases)
 
 
@@ -299,7 +327,7 @@ def n_circles(phases, mag_min=-40.0, mag_max=12.0):
     """
     # Convert phases and magnitude range into a grid suitable for
     # building contours
-    mags = np.linspace(10**(mag_min/20.0), 10**(mag_max/20.0), 2000)
+    mags = np.linspace(10 ** (mag_min / 20.0), 10 ** (mag_max / 20.0), 2000)
     Gcl_phases, Gcl_mags = np.meshgrid(np.radians(phases), mags)
     return closed_loop_contours(Gcl_mags, Gcl_phases)
 

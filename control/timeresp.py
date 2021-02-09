@@ -2,7 +2,6 @@
 #
 # This file contains a collection of functions that calculate time
 # responses for linear systems.
-
 """The :mod:`~control.timeresp` module contains a collection of
 functions that are used to compute time-domain simulations of LTI
 systems.
@@ -22,7 +21,6 @@ See :ref:`time-series-convention` for more information on how time
 series data are represented.
 
 """
-
 """Copyright (c) 2011 by California Institute of Technology
 All rights reserved.
 
@@ -70,27 +68,43 @@ Date: August 17, 2020
 
 $Id$
 """
-
 # Libraries that we make use of
-import scipy as sp              # SciPy library (used all over)
-import numpy as np              # NumPy library
-from scipy.linalg import eig, eigvals, matrix_balance, norm
-from numpy import (einsum, maximum, minimum,
-                   atleast_1d)
 import warnings
-from .lti import LTI     # base class of StateSpace, TransferFunction
-from .xferfcn import TransferFunction
-from .statesp import _convert_to_statespace, _mimo2simo, _mimo2siso, ssdata
-from .lti import isdtime, isctime
-from . import config
 
-__all__ = ['forced_response', 'step_response', 'step_info', 'initial_response',
-           'impulse_response']
+import numpy as np  # NumPy library
+import scipy as sp  # SciPy library (used all over)
+from numpy import atleast_1d
+from numpy import einsum
+from numpy import maximum
+from numpy import minimum
+from scipy.linalg import eig
+from scipy.linalg import eigvals
+from scipy.linalg import matrix_balance
+from scipy.linalg import norm
+
+from . import config
+from .lti import isctime
+from .lti import isdtime
+from .lti import LTI  # base class of StateSpace, TransferFunction
+from .statesp import _convert_to_statespace
+from .statesp import _mimo2simo
+from .statesp import _mimo2siso
+from .statesp import ssdata
+from .xferfcn import TransferFunction
+
+__all__ = [
+    "forced_response",
+    "step_response",
+    "step_info",
+    "initial_response",
+    "impulse_response",
+]
 
 
 # Helper function for checking array-like parameters
-def _check_convert_array(in_obj, legal_shapes, err_msg_start, squeeze=False,
-                         transpose=False):
+def _check_convert_array(
+    in_obj, legal_shapes, err_msg_start, squeeze=False, transpose=False
+):
     """Helper function for checking array_like parameters.
 
     * Check type and shape of ``in_obj``.
@@ -140,14 +154,17 @@ def _check_convert_array(in_obj, legal_shapes, err_msg_start, squeeze=False,
     """
     # convert nearly everything to an array.
     out_array = np.asarray(in_obj)
-    if (transpose):
+    if transpose:
         out_array = np.transpose(out_array)
 
     # Test element data type, elements must be numbers
-    legal_kinds = set(("i", "f", "c"))  # integer, float, complex
+    legal_kinds = {"i", "f", "c"}  # integer, float, complex
     if out_array.dtype.kind not in legal_kinds:
-        err_msg = "Wrong element data type: '{d}'. Array elements " \
-                  "must be numbers.".format(d=str(out_array.dtype))
+        err_msg = (
+            "Wrong element data type: '{d}'. Array elements must be numbers.".format(
+                d=str(out_array.dtype)
+            )
+        )
         raise TypeError(err_msg_start + err_msg)
 
     # If array is zero dimensional (in_obj is scalar):
@@ -158,7 +175,7 @@ def _check_convert_array(in_obj, legal_shapes, err_msg_start, squeeze=False,
             if "any" in s_legal:
                 continue
             the_val = out_array[()]
-            out_array = np.empty(s_legal, 'd')
+            out_array = np.empty(s_legal, "d")
             out_array.fill(the_val)
             break
 
@@ -182,8 +199,9 @@ def _check_convert_array(in_obj, legal_shapes, err_msg_start, squeeze=False,
             break
     else:
         legal_shape_str = " or ".join([str(s) for s in legal_shapes])
-        err_msg = "Wrong shape (rows, columns): {a}. Expected: {e}." \
-                  .format(e=legal_shape_str, a=str(out_array.shape))
+        err_msg = "Wrong shape (rows, columns): {a}. Expected: {e}.".format(
+            e=legal_shape_str, a=str(out_array.shape)
+        )
         raise ValueError(err_msg_start + err_msg)
 
     # Convert shape
@@ -197,8 +215,16 @@ def _check_convert_array(in_obj, legal_shapes, err_msg_start, squeeze=False,
 
 
 # Forced response of a linear system
-def forced_response(sys, T=None, U=0., X0=0., transpose=False,
-                    interpolate=False, return_x=None, squeeze=None):
+def forced_response(
+    sys,
+    T=None,
+    U=0.0,
+    X0=0.0,
+    transpose=False,
+    interpolate=False,
+    return_x=None,
+    squeeze=None,
+):
     """Simulate the output of a linear system.
 
     As a convenience for parameters `U`, `X0`:
@@ -286,23 +312,30 @@ def forced_response(sys, T=None, U=0., X0=0., transpose=False,
 
     """
     if not isinstance(sys, LTI):
-        raise TypeError('Parameter ``sys``: must be a ``LTI`` object. '
-                        '(For example ``StateSpace`` or ``TransferFunction``)')
+        raise TypeError(
+            "Parameter ``sys``: must be a ``LTI`` object. "
+            "(For example ``StateSpace`` or ``TransferFunction``)"
+        )
 
     # If return_x was not specified, figure out the default
     if return_x is None:
-        return_x = config.defaults['forced_response.return_x']
+        return_x = config.defaults["forced_response.return_x"]
 
     # If return_x is used for TransferFunction, issue a warning
     if return_x and isinstance(sys, TransferFunction):
         warnings.warn(
             "return_x specified for a transfer function system. Internal "
-            "conversion to state space used; results may meaningless.")
+            "conversion to state space used; results may meaningless."
+        )
 
     sys = _convert_to_statespace(sys)
-    A, B, C, D = np.asarray(sys.A), np.asarray(sys.B), np.asarray(sys.C), \
-        np.asarray(sys.D)
-#    d_type = A.dtype
+    A, B, C, D = (
+        np.asarray(sys.A),
+        np.asarray(sys.B),
+        np.asarray(sys.C),
+        np.asarray(sys.D),
+    )
+    #    d_type = A.dtype
     n_states = A.shape[0]
     n_inputs = B.shape[1]
     n_outputs = C.shape[0]
@@ -317,8 +350,10 @@ def forced_response(sys, T=None, U=0., X0=0., transpose=False,
     if isdtime(sys, strict=True):
         if T is None:
             if U is None:
-                raise ValueError('Parameters ``T`` and ``U`` can\'t both be'
-                                 'zero for discrete-time simulation')
+                raise ValueError(
+                    "Parameters ``T`` and ``U`` can't both be"
+                    "zero for discrete-time simulation"
+                )
             # Set T to equally spaced samples with same length as U
             if U.ndim == 1:
                 n_steps = U.shape[0]
@@ -328,36 +363,46 @@ def forced_response(sys, T=None, U=0., X0=0., transpose=False,
         else:
             # Make sure the input vector and time vector have same length
             # TODO: allow interpolation of the input vector
-            if (U.ndim == 1 and U.shape[0] != T.shape[0]) or \
-                    (U.ndim > 1 and U.shape[1] != T.shape[0]):
-                ValueError('Pamameter ``T`` must have same elements as'
-                           ' the number of columns in input array ``U``')
+            if (U.ndim == 1 and U.shape[0] != T.shape[0]) or (
+                U.ndim > 1 and U.shape[1] != T.shape[0]
+            ):
+                ValueError(
+                    "Pamameter ``T`` must have same elements as"
+                    " the number of columns in input array ``U``"
+                )
 
     # Test if T has shape (n,) or (1, n);
     # T must be array-like and values must be increasing.
     # The length of T determines the length of the input vector.
     if T is None:
-        raise ValueError('Parameter ``T``: must be array-like, and contain '
-                         '(strictly monotonic) increasing numbers.')
-    T = _check_convert_array(T, [('any',), (1, 'any')],
-                             'Parameter ``T``: ', squeeze=True,
-                             transpose=transpose)
+        raise ValueError(
+            "Parameter ``T``: must be array-like, and contain "
+            "(strictly monotonic) increasing numbers."
+        )
+    T = _check_convert_array(
+        T,
+        [("any",), (1, "any")],
+        "Parameter ``T``: ",
+        squeeze=True,
+        transpose=transpose,
+    )
     dt = T[1] - T[0]
     if not np.allclose(T[1:] - T[:-1], dt):
-        raise ValueError("Parameter ``T``: time values must be "
-                         "equally spaced.")
-    n_steps = T.shape[0]            # number of simulation steps
+        raise ValueError("Parameter ``T``: time values must be equally spaced.")
+    n_steps = T.shape[0]  # number of simulation steps
 
     # create X0 if not given, test if X0 has correct shape
-    X0 = _check_convert_array(X0, [(n_states,), (n_states, 1)],
-                              'Parameter ``X0``: ', squeeze=True)
+    X0 = _check_convert_array(
+        X0, [(n_states,), (n_states, 1)], "Parameter ``X0``: ", squeeze=True
+    )
 
     # If we are passed a transfer function and X0 is non-zero, warn the user
     if isinstance(sys, TransferFunction) and np.any(X0 != 0):
         warnings.warn(
             "Non-zero initial condition given for transfer function system. "
             "Internal conversion to state space used; may not be consistent "
-            "with given X0.")
+            "with given X0."
+        )
 
     xout = np.zeros((n_states, n_steps))
     xout[:, 0] = X0
@@ -373,17 +418,18 @@ def forced_response(sys, T=None, U=0., X0=0., transpose=False,
             # Solve using matrix exponential
             expAdt = sp.linalg.expm(A * dt)
             for i in range(1, n_steps):
-                xout[:, i] = dot(expAdt, xout[:, i-1])
+                xout[:, i] = dot(expAdt, xout[:, i - 1])
             yout = dot(C, xout)
 
         # General algorithm that interpolates U in between output points
         else:
             # Test if U has correct shape and type
-            legal_shapes = [(n_steps,), (1, n_steps)] if n_inputs == 1 else \
-                           [(n_inputs, n_steps)]
-            U = _check_convert_array(U, legal_shapes,
-                                     'Parameter ``U``: ', squeeze=False,
-                                     transpose=transpose)
+            legal_shapes = (
+                [(n_steps,), (1, n_steps)] if n_inputs == 1 else [(n_inputs, n_steps)]
+            )
+            U = _check_convert_array(
+                U, legal_shapes, "Parameter ``U``: ", squeeze=False, transpose=transpose
+            )
             # convert 1D array to 2D array with only one row
             if len(U.shape) == 1:
                 U = U.reshape(1, -1)  # pylint: disable=E1103
@@ -398,18 +444,22 @@ def forced_response(sys, T=None, U=0., X0=0., transpose=False,
             #   [ u(dt) ] = exp [  0     0    I ] [  u0   ]
             #   [u1 - u0]       [  0     0    0 ] [u1 - u0]
 
-            M = np.block([[A * dt, B * dt, np.zeros((n_states, n_inputs))],
-                         [np.zeros((n_inputs, n_states + n_inputs)),
-                          np.identity(n_inputs)],
-                         [np.zeros((n_inputs, n_states + 2 * n_inputs))]])
+            M = np.block(
+                [
+                    [A * dt, B * dt, np.zeros((n_states, n_inputs))],
+                    [np.zeros((n_inputs, n_states + n_inputs)), np.identity(n_inputs)],
+                    [np.zeros((n_inputs, n_states + 2 * n_inputs))],
+                ]
+            )
             expM = sp.linalg.expm(M)
             Ad = expM[:n_states, :n_states]
-            Bd1 = expM[:n_states, n_states+n_inputs:]
-            Bd0 = expM[:n_states, n_states:n_states + n_inputs] - Bd1
+            Bd1 = expM[:n_states, n_states + n_inputs :]
+            Bd0 = expM[:n_states, n_states : n_states + n_inputs] - Bd1
 
             for i in range(1, n_steps):
-                xout[:, i] = (dot(Ad, xout[:, i-1]) + dot(Bd0, U[:, i-1]) +
-                              dot(Bd1, U[:, i]))
+                xout[:, i] = (
+                    dot(Ad, xout[:, i - 1]) + dot(Bd0, U[:, i - 1]) + dot(Bd1, U[:, i])
+                )
             yout = dot(C, xout) + dot(D, U)
         tout = T
 
@@ -425,14 +475,12 @@ def forced_response(sys, T=None, U=0., X0=0., transpose=False,
 
             # Now check to make sure it is a multiple (with check against
             # sys.dt because floating point mod can have small errors
-            elif not (np.isclose(dt % sys.dt, 0) or
-                      np.isclose(dt % sys.dt, sys.dt)):
-                raise ValueError("Time steps ``T`` must be multiples of "
-                                 "sampling time")
+            elif not (np.isclose(dt % sys.dt, 0) or np.isclose(dt % sys.dt, sys.dt)):
+                raise ValueError("Time steps ``T`` must be multiples of sampling time")
             sys_dt = sys.dt
 
         else:
-            sys_dt = dt         # For unspecified sampling time, use time incr
+            sys_dt = dt  # For unspecified sampling time, use time incr
 
         # Discrete time simulation using signal processing toolbox
         dsys = (A, B, C, D, sys_dt)
@@ -444,7 +492,7 @@ def forced_response(sys, T=None, U=0., X0=0., transpose=False,
         if not interpolate:
             # If dt is different from sys.dt, resample the output
             inc = int(round(dt / sys_dt))
-            tout = T            # Return exact list of time steps
+            tout = T  # Return exact list of time steps
             yout = yout[::inc, :]
             xout = xout[::inc, :]
 
@@ -452,14 +500,23 @@ def forced_response(sys, T=None, U=0., X0=0., transpose=False,
         xout = np.transpose(xout)
         yout = np.transpose(yout)
 
-    return _process_time_response(sys, tout, yout, xout, transpose=transpose,
-                                  return_x=return_x, squeeze=squeeze)
+    return _process_time_response(
+        sys, tout, yout, xout, transpose=transpose, return_x=return_x, squeeze=squeeze
+    )
 
 
 # Process time responses in a uniform way
 def _process_time_response(
-        sys, tout, yout, xout, transpose=None, return_x=False,
-        squeeze=None, input=None, output=None):
+    sys,
+    tout,
+    yout,
+    xout,
+    transpose=None,
+    return_x=False,
+    squeeze=None,
+    input=None,
+    output=None,
+):
     """Process time response signals.
 
     This function processes the outputs of the time response functions and
@@ -525,28 +582,28 @@ def _process_time_response(
     """
     # If squeeze was not specified, figure out the default (might remain None)
     if squeeze is None:
-        squeeze = config.defaults['control.squeeze_time_response']
+        squeeze = config.defaults["control.squeeze_time_response"]
 
     # Determine if the system is SISO
     issiso = sys.issiso() or (input is not None and output is not None)
 
     # Figure out whether and how to squeeze output data
-    if squeeze is True:         # squeeze all dimensions
+    if squeeze is True:  # squeeze all dimensions
         yout = np.squeeze(yout)
-    elif squeeze is False:      # squeeze no dimensions
+    elif squeeze is False:  # squeeze no dimensions
         pass
-    elif squeeze is None:       # squeeze signals if SISO
+    elif squeeze is None:  # squeeze signals if SISO
         if issiso:
             if len(yout.shape) == 3:
-                yout = yout[0][0]       # remove input and output
+                yout = yout[0][0]  # remove input and output
             else:
-                yout = yout[0]          # remove input
+                yout = yout[0]  # remove input
     else:
         raise ValueError("unknown squeeze value")
 
     # Figure out whether and how to squeeze the state data
     if issiso and len(xout.shape) > 2:
-        xout = xout[:, 0, :]            # remove input
+        xout = xout[:, 0, :]  # remove input
 
     # See if we need to transpose the data back into MATLAB form
     if transpose:
@@ -576,7 +633,7 @@ def _get_ss_simo(sys, input=None, output=None, squeeze=None):
     """
     # If squeeze was not specified, figure out the default
     if squeeze is None:
-        squeeze = config.defaults['control.squeeze_time_response']
+        squeeze = config.defaults["control.squeeze_time_response"]
 
     sys_ss = _convert_to_statespace(sys)
     if sys_ss.issiso():
@@ -598,8 +655,17 @@ def _get_ss_simo(sys, input=None, output=None, squeeze=None):
         return squeeze, _mimo2siso(sys_ss, input, output, warn_conversion=warn)
 
 
-def step_response(sys, T=None, X0=0., input=None, output=None, T_num=None,
-                  transpose=False, return_x=False, squeeze=None):
+def step_response(
+    sys,
+    T=None,
+    X0=0.0,
+    input=None,
+    output=None,
+    T_num=None,
+    transpose=False,
+    return_x=False,
+    squeeze=None,
+):
     # pylint: disable=W0622
     """Compute the step response for a linear system.
 
@@ -703,7 +769,8 @@ def step_response(sys, T=None, X0=0., input=None, output=None, T_num=None,
         warnings.warn(
             "Non-zero initial condition given for transfer function system. "
             "Internal conversion to state space used; may not be consistent "
-            "with given X0.")
+            "with given X0."
+        )
 
     # Convert to state space so that we can simulate
     sys = _convert_to_statespace(sys)
@@ -723,21 +790,31 @@ def step_response(sys, T=None, X0=0., input=None, output=None, T_num=None,
         # Create a set of single inputs system for simulation
         squeeze, simo = _get_ss_simo(sys, i, output, squeeze=squeeze)
 
-        out = forced_response(simo, T, U, X0, transpose=False,
-                              return_x=return_x, squeeze=True)
+        out = forced_response(
+            simo, T, U, X0, transpose=False, return_x=return_x, squeeze=True
+        )
         inpidx = i if input is None else 0
         yout[:, inpidx, :] = out[1]
         if return_x:
             xout[:, i, :] = out[2]
 
     return _process_time_response(
-        sys, out[0], yout, xout, transpose=transpose, return_x=return_x,
-        squeeze=squeeze, input=input, output=output)
+        sys,
+        out[0],
+        yout,
+        xout,
+        transpose=transpose,
+        return_x=return_x,
+        squeeze=squeeze,
+        input=input,
+        output=output,
+    )
 
 
-def step_info(sys, T=None, T_num=None, SettlingTimeThreshold=0.02,
-              RiseTimeLimits=(0.1, 0.9)):
-    '''
+def step_info(
+    sys, T=None, T_num=None, SettlingTimeThreshold=0.02, RiseTimeLimits=(0.1, 0.9)
+):
+    """
     Step response characteristics (Rise time, Settling Time, Peak and others).
 
     Parameters
@@ -780,7 +857,7 @@ def step_info(sys, T=None, T_num=None, SettlingTimeThreshold=0.02,
     Examples
     --------
     >>> info = step_info(sys, T)
-    '''
+    """
     _, sys = _get_ss_simo(sys)
     if T is None or np.asarray(T).size == 1:
         T = _default_time_vector(sys, N=T_num, tfinal=T, is_step=True)
@@ -796,30 +873,39 @@ def step_info(sys, T=None, T_num=None, SettlingTimeThreshold=0.02,
     RiseTime = T[tr_upper_index] - T[tr_lower_index]
 
     # SettlingTime
-    sup_margin = (1. + SettlingTimeThreshold) * InfValue
-    inf_margin = (1. - SettlingTimeThreshold) * InfValue
+    sup_margin = (1.0 + SettlingTimeThreshold) * InfValue
+    inf_margin = (1.0 - SettlingTimeThreshold) * InfValue
     # find Steady State looking for the first point out of specified limits
     for i in reversed(range(T.size)):
-        if((yout[i] <= inf_margin) | (yout[i] >= sup_margin)):
+        if (yout[i] <= inf_margin) | (yout[i] >= sup_margin):
             SettlingTime = T[i + 1]
             break
 
     PeakIndex = np.abs(yout).argmax()
     return {
-        'RiseTime': RiseTime,
-        'SettlingTime': SettlingTime,
-        'SettlingMin': yout[tr_upper_index:].min(),
-        'SettlingMax': yout.max(),
-        'Overshoot': 100. * (yout.max() - InfValue) / (InfValue - yout[0]),
-        'Undershoot': yout.min(), # not very confident about this
-        'Peak': yout[PeakIndex],
-        'PeakTime':  T[PeakIndex],
-        'SteadyStateValue': InfValue
-        }
+        "RiseTime": RiseTime,
+        "SettlingTime": SettlingTime,
+        "SettlingMin": yout[tr_upper_index:].min(),
+        "SettlingMax": yout.max(),
+        "Overshoot": 100.0 * (yout.max() - InfValue) / (InfValue - yout[0]),
+        "Undershoot": yout.min(),  # not very confident about this
+        "Peak": yout[PeakIndex],
+        "PeakTime": T[PeakIndex],
+        "SteadyStateValue": InfValue,
+    }
 
 
-def initial_response(sys, T=None, X0=0., input=0, output=None, T_num=None,
-                     transpose=False, return_x=False, squeeze=None):
+def initial_response(
+    sys,
+    T=None,
+    X0=0.0,
+    input=0,
+    output=None,
+    T_num=None,
+    transpose=False,
+    return_x=False,
+    squeeze=None,
+):
     # pylint: disable=W0622
     """Initial condition response of a linear system
 
@@ -908,12 +994,22 @@ def initial_response(sys, T=None, X0=0., input=0, output=None, T_num=None,
         T = _default_time_vector(sys, N=T_num, tfinal=T, is_step=False)
     U = np.zeros_like(T)
 
-    return forced_response(sys, T, U, X0, transpose=transpose,
-                           return_x=return_x, squeeze=squeeze)
+    return forced_response(
+        sys, T, U, X0, transpose=transpose, return_x=return_x, squeeze=squeeze
+    )
 
 
-def impulse_response(sys, T=None, X0=0., input=None, output=None, T_num=None,
-                     transpose=False, return_x=False, squeeze=None):
+def impulse_response(
+    sys,
+    T=None,
+    X0=0.0,
+    input=None,
+    output=None,
+    T_num=None,
+    transpose=False,
+    return_x=False,
+    squeeze=None,
+):
     # pylint: disable=W0622
     """Compute the impulse response for a linear system.
 
@@ -1008,16 +1104,19 @@ def impulse_response(sys, T=None, X0=0., input=None, output=None, T_num=None,
 
     # Check to make sure there is not a direct term
     if np.any(sys.D != 0) and isctime(sys):
-        warnings.warn("System has direct feedthrough: ``D != 0``. The "
-                      "infinite impulse at ``t=0`` does not appear in the "
-                      "output.\n"
-                      "Results may be meaningless!")
+        warnings.warn(
+            "System has direct feedthrough: ``D != 0``. The "
+            "infinite impulse at ``t=0`` does not appear in the "
+            "output.\n"
+            "Results may be meaningless!"
+        )
 
     # create X0 if not given, test if X0 has correct shape.
     # Must be done here because it is used for computations below.
     n_states = sys.A.shape[0]
-    X0 = _check_convert_array(X0, [(n_states,), (n_states, 1)],
-                              'Parameter ``X0``: \n', squeeze=True)
+    X0 = _check_convert_array(
+        X0, [(n_states,), (n_states, 1)], "Parameter ``X0``: \n", squeeze=True
+    )
 
     # Compute T and U, no checks necessary, will be checked in forced_response
     if T is None or np.asarray(T).size == 1:
@@ -1051,11 +1150,12 @@ def impulse_response(sys, T=None, X0=0., input=None, output=None, T_num=None,
             new_X0 = B + X0
         else:
             new_X0 = X0
-            U[0] = 1./simo.dt # unit area impulse
+            U[0] = 1.0 / simo.dt  # unit area impulse
 
         # Simulate the impulse response fo this input
-        out = forced_response(simo, T, U, new_X0, transpose=False,
-                              return_x=return_x, squeeze=squeeze)
+        out = forced_response(
+            simo, T, U, new_X0, transpose=False, return_x=return_x, squeeze=squeeze
+        )
 
         # Store the output (and states)
         inpidx = i if input is None else 0
@@ -1064,8 +1164,16 @@ def impulse_response(sys, T=None, X0=0., input=None, output=None, T_num=None,
             xout[:, i, :] = out[2]
 
     return _process_time_response(
-        sys, out[0], yout, xout, transpose=transpose, return_x=return_x,
-        squeeze=squeeze, input=input, output=output)
+        sys,
+        out[0],
+        yout,
+        xout,
+        transpose=transpose,
+        return_x=return_x,
+        squeeze=squeeze,
+        input=input,
+        output=output,
+    )
 
 
 # utility function to find time period and time increment using pole locations
@@ -1115,7 +1223,7 @@ def _ideal_tfinal_and_dt(sys, is_step=True):
     python-control 2020.08.17
     """
 
-    sqrt_eps = np.sqrt(np.spacing(1.))
+    sqrt_eps = np.sqrt(np.spacing(1.0))
     default_tfinal = 5  # Default simulation horizon
     default_dt = 0.1
     total_cycles = 5  # number of cycles for oscillating modes
@@ -1132,13 +1240,12 @@ def _ideal_tfinal_and_dt(sys, is_step=True):
         p = eigvals(A)
         # Array Masks
         # unstable
-        m_u = (np.abs(p) >= 1 + sqrt_eps)
+        m_u = np.abs(p) >= 1 + sqrt_eps
         p_u, p = p[m_u], p[~m_u]
         if p_u.size > 0:
             m_u = (p_u.real < 0) & (np.abs(p_u.imag) < sqrt_eps)
             if np.any(~m_u):
-                t_emp = np.max(
-                    log_decay_percent / np.abs(np.log(p_u[~m_u]) / dt))
+                t_emp = np.max(log_decay_percent / np.abs(np.log(p_u[~m_u]) / dt))
                 tfinal = max(tfinal, t_emp)
 
         # zero - negligible effect on tfinal
@@ -1148,25 +1255,25 @@ def _ideal_tfinal_and_dt(sys, is_step=True):
         m_nr = (p.real < 0) & (np.abs(p.imag) < sqrt_eps)
         p_nr, p = p[m_nr], p[~m_nr]
         if p_nr.size > 0:
-            t_emp = np.max(log_decay_percent / np.abs((np.log(p_nr)/dt).real))
+            t_emp = np.max(log_decay_percent / np.abs((np.log(p_nr) / dt).real))
             tfinal = max(tfinal, t_emp)
         # discrete integrators
         m_int = (p.real - 1 < sqrt_eps) & (np.abs(p.imag) < sqrt_eps)
         p_int, p = p[m_int], p[~m_int]
         # pure oscillatory modes
-        m_w = (np.abs(np.abs(p) - 1) < sqrt_eps)
+        m_w = np.abs(np.abs(p) - 1) < sqrt_eps
         p_w, p = p[m_w], p[~m_w]
         if p_w.size > 0:
-            t_emp = total_cycles * 2 * np.pi / np.abs(np.log(p_w)/dt).min()
+            t_emp = total_cycles * 2 * np.pi / np.abs(np.log(p_w) / dt).min()
             tfinal = max(tfinal, t_emp)
 
         if p.size > 0:
-            t_emp = log_decay_percent / np.abs((np.log(p)/dt).real).min()
+            t_emp = log_decay_percent / np.abs((np.log(p) / dt).real).min()
             tfinal = max(tfinal, t_emp)
 
         if p_int.size > 0:
             tfinal = tfinal * 5
-    else: # cont time
+    else:  # cont time
         sys_ss = _convert_to_statespace(sys)
         # Improve conditioning via balancing and zeroing tiny entries
         # See <w,v> for [[1,2,0], [9,1,0.01], [1,2,10*np.pi]] before/after balance
@@ -1174,10 +1281,10 @@ def _ideal_tfinal_and_dt(sys, is_step=True):
         p, l, r = eig(b, left=True, right=True)
         # Reciprocal of inner product <w,v> for each eigval, (bound the ~infs by 1e12)
         # G = Transfer([1], [1,0,1]) gives zero sensitivity (bound by 1e-12)
-        eig_sens = np.reciprocal(maximum(1e-12, einsum('ij,ij->j', l, r).real))
+        eig_sens = np.reciprocal(maximum(1e-12, einsum("ij,ij->j", l, r).real))
         eig_sens = minimum(1e12, eig_sens)
         # Tolerances
-        p[np.abs(p) < np.spacing(eig_sens * norm(b, 1))] = 0.
+        p[np.abs(p) < np.spacing(eig_sens * norm(b, 1))] = 0.0
         # Incorporate balancing to outer factors
         l[perm, :] *= np.reciprocal(sca)[:, None]
         r[perm, :] *= sca[:, None]
@@ -1186,29 +1293,29 @@ def _ideal_tfinal_and_dt(sys, is_step=True):
         origin = False
         # Computing the "size" of the response of each simple mode
         wn = np.abs(p)
-        if np.any(wn == 0.):
+        if np.any(wn == 0.0):
             origin = True
 
         dc = np.zeros_like(p, dtype=float)
         # well-conditioned nonzero poles, np.abs just in case
-        ok = np.abs(eig_sens) <= 1/sqrt_eps
+        ok = np.abs(eig_sens) <= 1 / sqrt_eps
         # the averaged t->inf response of each simple eigval on each i/o channel
         # See, A = [[-1, k], [0, -2]], response sizes are k-dependent (that is
         # R/L eigenvector dependent)
-        dc[ok] = norm(v[ok, :], axis=1)*norm(w[:, ok], axis=0)*eig_sens[ok]
-        dc[wn != 0.] /= wn[wn != 0] if is_step else 1.
-        dc[wn == 0.] = 0.
+        dc[ok] = norm(v[ok, :], axis=1) * norm(w[:, ok], axis=0) * eig_sens[ok]
+        dc[wn != 0.0] /= wn[wn != 0] if is_step else 1.0
+        dc[wn == 0.0] = 0.0
         # double the oscillating mode magnitude for the conjugate
-        dc[p.imag != 0.] *= 2
+        dc[p.imag != 0.0] *= 2
 
         # Now get rid of noncontributing integrators and simple modes if any
-        relevance = (dc > 0.1*dc.max()) | ~ok
+        relevance = (dc > 0.1 * dc.max()) | ~ok
         psub = p[relevance]
         wnsub = wn[relevance]
 
         tfinal, dt = [], []
-        ints = wnsub == 0.
-        iw = (psub.imag != 0.) & (np.abs(psub.real) <= sqrt_eps)
+        ints = wnsub == 0.0
+        iw = (psub.imag != 0.0) & (np.abs(psub.real) <= sqrt_eps)
 
         # Pure imaginary?
         if np.any(iw):
@@ -1217,25 +1324,27 @@ def _ideal_tfinal_and_dt(sys, is_step=True):
         # The rest ~ts = log(%ss value) / exp(Re(eigval)t)
         texp_mode = log_decay_percent / np.abs(psub[~iw & ~ints].real)
         tfinal += texp_mode.tolist()
-        dt += minimum(texp_mode / 50,
-                    (2 * np.pi / pts_per_cycle / wnsub[~iw & ~ints])).tolist()
+        dt += minimum(
+            texp_mode / 50, (2 * np.pi / pts_per_cycle / wnsub[~iw & ~ints])
+        ).tolist()
 
         # All integrators?
         if len(tfinal) == 0:
-            return default_tfinal*5, default_dt*5
+            return default_tfinal * 5, default_dt * 5
 
-        tfinal = np.max(tfinal)*(5 if origin else 1)
+        tfinal = np.max(tfinal) * (5 if origin else 1)
         dt = np.min(dt)
 
     return tfinal, dt
 
+
 def _default_time_vector(sys, N=None, tfinal=None, is_step=True):
     """Returns a time vector that has a reasonable number of points.
-    if system is discrete-time, N is ignored """
+    if system is discrete-time, N is ignored"""
 
     N_max = 5000
-    N_min_ct = 100 # min points for cont time systems
-    N_min_dt = 20 # more common to see just a few samples in discrete-time
+    N_min_ct = 100  # min points for cont time systems
+    N_min_dt = 20  # more common to see just a few samples in discrete-time
 
     ideal_tfinal, ideal_dt = _ideal_tfinal_and_dt(sys, is_step=is_step)
 
@@ -1243,16 +1352,16 @@ def _default_time_vector(sys, N=None, tfinal=None, is_step=True):
         # only need to use default_tfinal if not given; N is ignored.
         if tfinal is None:
             # for discrete time, change from ideal_tfinal if N too large/small
-            N = int(np.clip(ideal_tfinal/sys.dt, N_min_dt, N_max))# [N_min, N_max]
+            N = int(np.clip(ideal_tfinal / sys.dt, N_min_dt, N_max))  # [N_min, N_max]
             tfinal = sys.dt * N
         else:
-            N = int(tfinal/sys.dt)
-            tfinal = N * sys.dt # make tfinal an integer multiple of sys.dt
+            N = int(tfinal / sys.dt)
+            tfinal = N * sys.dt  # make tfinal an integer multiple of sys.dt
     else:
         if tfinal is None:
             # for continuous time, simulate to ideal_tfinal but limit N
             tfinal = ideal_tfinal
         if N is None:
-            N = int(np.clip(tfinal/ideal_dt, N_min_ct, N_max)) # N<-[N_min, N_max]
+            N = int(np.clip(tfinal / ideal_dt, N_min_ct, N_max))  # N<-[N_min, N_max]
 
     return np.linspace(0, tfinal, N, endpoint=False)

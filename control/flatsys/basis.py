@@ -35,8 +35,6 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
 # OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 # SUCH DAMAGE.
-
-
 # Basis family class (for use as a base class)
 class BasisFamily:
     """Base class for implementing basis functions for flat systems.
@@ -48,6 +46,7 @@ class BasisFamily:
       :math:`z_i^{(q)}(t)` = basis.eval_deriv(self, i, j, t)
 
     """
+
     def __init__(self, N):
         """Create a basis family of order N."""
-        self.N = N                    # save number of basis functions
+        self.N = N  # save number of basis functions

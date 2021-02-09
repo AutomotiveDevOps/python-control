@@ -17,7 +17,7 @@ for example in *.py; do
         example_errors="${example_errors} ${example}"
     fi
 done
-    
+
 if [ -n "${example_errors}" ]; then
     echo These examples had errors:
     echo "${example_errors}"

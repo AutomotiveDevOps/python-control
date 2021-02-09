@@ -7,33 +7,66 @@ functions using different systems and arguments to make sure that
 nothing crashes.  Many test don't test actual functionality; the module
 specific unit tests will do that.
 """
-
 import numpy as np
 import pytest
 import scipy as sp
 from scipy.linalg import eigvals
 
-from control.matlab import ss, ss2tf, ssdata, tf, tf2ss, tfdata, rss, drss, frd
-from control.matlab import parallel, series, feedback
-from control.matlab import pole, zero, damp
-from control.matlab import step, stepinfo, impulse, initial, lsim
-from control.matlab import margin, dcgain
-from control.matlab import linspace, logspace
-from control.matlab import bode, rlocus, nyquist, nichols, ngrid, pzmap
-from control.matlab import freqresp, evalfr
-from control.matlab import hsvd, balred, modred, minreal
-from control.matlab import place, place_varga, acker
-from control.matlab import lqr, ctrb, obsv, gram
-from control.matlab import pade
-from control.matlab import unwrap, c2d, isctime, isdtime
-from control.matlab import connect, append
-
-
 from control.frdata import FRD
+from control.matlab import acker
+from control.matlab import append
+from control.matlab import balred
+from control.matlab import bode
+from control.matlab import c2d
+from control.matlab import connect
+from control.matlab import ctrb
+from control.matlab import damp
+from control.matlab import dcgain
+from control.matlab import drss
+from control.matlab import evalfr
+from control.matlab import feedback
+from control.matlab import frd
+from control.matlab import freqresp
+from control.matlab import gram
+from control.matlab import hsvd
+from control.matlab import impulse
+from control.matlab import initial
+from control.matlab import isctime
+from control.matlab import isdtime
+from control.matlab import linspace
+from control.matlab import logspace
+from control.matlab import lqr
+from control.matlab import lsim
+from control.matlab import margin
+from control.matlab import minreal
+from control.matlab import modred
+from control.matlab import ngrid
+from control.matlab import nichols
+from control.matlab import nyquist
+from control.matlab import obsv
+from control.matlab import pade
+from control.matlab import parallel
+from control.matlab import place
+from control.matlab import place_varga
+from control.matlab import pole
+from control.matlab import pzmap
+from control.matlab import rlocus
+from control.matlab import rss
+from control.matlab import series
+from control.matlab import ss
+from control.matlab import ss2tf
+from control.matlab import ssdata
+from control.matlab import step
+from control.matlab import stepinfo
+from control.matlab import tf
+from control.matlab import tf2ss
+from control.matlab import tfdata
+from control.matlab import unwrap
+from control.matlab import zero
 from control.tests.conftest import slycotonly
 
 # for running these through Matlab or Octave
-'''
+"""
 siso_ss1 = ss([1. -2.; 3. -4.], [5.; 7.], [6. 8.], [0])
 
 siso_tf1 = tf([1], [1, 2, 1])
@@ -67,7 +100,7 @@ margin(siso_ss2)
 % make a bit better
 [gm, pm, gmc, pmc] = margin(siso_ss2*siso_ss2*2)
 
-'''
+"""
 
 
 @pytest.fixture(scope="class")
@@ -91,10 +124,10 @@ class TestMatlab:
         """Set up some systems for testing out MATLAB functions"""
         s = tsystems()
 
-        A = np.array([[1., -2.], [3., -4.]])
-        B = np.array([[5.], [7.]])
-        C = np.array([[6., 8.]])
-        D = np.array([[9.]])
+        A = np.array([[1.0, -2.0], [3.0, -4.0]])
+        B = np.array([[5.0], [7.0]])
+        C = np.array([[6.0, 8.0]])
+        D = np.array([[9.0]])
         s.ss1 = ss(A, B, C, D)
 
         # Create some transfer functions
@@ -112,18 +145,17 @@ class TestMatlab:
     def mimo(self):
         """Create MIMO system, contains ``siso_ss1`` twice"""
         m = tsystems()
-        A = np.array([[1., -2., 0., 0.],
-                      [3., -4., 0., 0.],
-                      [0., 0., 1., -2.],
-                      [0., 0., 3., -4.]])
-        B = np.array([[5., 0.],
-                      [7., 0.],
-                      [0., 5.],
-                      [0., 7.]])
-        C = np.array([[6., 8., 0., 0.],
-                      [0., 0., 6., 8.]])
-        D = np.array([[9., 0.],
-                      [0., 9.]])
+        A = np.array(
+            [
+                [1.0, -2.0, 0.0, 0.0],
+                [3.0, -4.0, 0.0, 0.0],
+                [0.0, 0.0, 1.0, -2.0],
+                [0.0, 0.0, 3.0, -4.0],
+            ]
+        )
+        B = np.array([[5.0, 0.0], [7.0, 0.0], [0.0, 5.0], [0.0, 7.0]])
+        C = np.array([[6.0, 8.0, 0.0, 0.0], [0.0, 0.0, 6.0, 8.0]])
+        D = np.array([[9.0, 0.0], [0.0, 9.0]])
         m.ss1 = ss(A, B, C, D)
         return m
 
@@ -166,8 +198,7 @@ class TestMatlab:
         zero(siso.tf1)
         zero(siso.tf2)
 
-    @pytest.mark.parametrize(
-        "subsys", ["tf1", "tf2"])
+    @pytest.mark.parametrize("subsys", ["tf1", "tf2"])
     def testPZmap(self, siso, subsys, mplcleanup):
         """Call pzmap()"""
         # pzmap(siso.ss1);         not implemented
@@ -180,15 +211,28 @@ class TestMatlab:
         t = np.linspace(0, 1, 10)
         # Test transfer function
         yout, tout = step(siso.tf1, T=t)
-        youttrue = np.array([0, 0.0057, 0.0213, 0.0446, 0.0739,
-                             0.1075, 0.1443, 0.1832, 0.2235, 0.2642])
+        youttrue = np.array(
+            [0, 0.0057, 0.0213, 0.0446, 0.0739, 0.1075, 0.1443, 0.1832, 0.2235, 0.2642]
+        )
         np.testing.assert_array_almost_equal(yout, youttrue, decimal=4)
         np.testing.assert_array_almost_equal(tout, t)
 
         # Test SISO system with direct feedthrough
         sys = siso.ss1
-        youttrue = np.array([9., 17.6457, 24.7072, 30.4855, 35.2234, 39.1165,
-                             42.3227, 44.9694, 47.1599, 48.9776])
+        youttrue = np.array(
+            [
+                9.0,
+                17.6457,
+                24.7072,
+                30.4855,
+                35.2234,
+                39.1165,
+                42.3227,
+                44.9694,
+                47.1599,
+                48.9776,
+            ]
+        )
 
         yout, tout = step(sys, T=t)
         np.testing.assert_array_almost_equal(yout, youttrue, decimal=4)
@@ -213,8 +257,20 @@ class TestMatlab:
         """Test step for MIMO system"""
         sys = mimo.ss1
         t = np.linspace(0, 1, 10)
-        youttrue = np.array([9., 17.6457, 24.7072, 30.4855, 35.2234, 39.1165,
-                             42.3227, 44.9694, 47.1599, 48.9776])
+        youttrue = np.array(
+            [
+                9.0,
+                17.6457,
+                24.7072,
+                30.4855,
+                35.2234,
+                39.1165,
+                42.3227,
+                44.9694,
+                47.1599,
+                48.9776,
+            ]
+        )
 
         y_00, _t = step(sys, T=t, input=0, output=0)
         y_11, _t = step(sys, T=t, input=1, output=1)
@@ -232,14 +288,38 @@ class TestMatlab:
         t = np.linspace(0, 1, 10)
         # test transfer function
         yout, tout = impulse(siso.tf1, T=t)
-        youttrue = np.array([0., 0.0994, 0.1779, 0.2388, 0.2850, 0.3188,
-                             0.3423, 0.3573, 0.3654, 0.3679])
+        youttrue = np.array(
+            [
+                0.0,
+                0.0994,
+                0.1779,
+                0.2388,
+                0.2850,
+                0.3188,
+                0.3423,
+                0.3573,
+                0.3654,
+                0.3679,
+            ]
+        )
         np.testing.assert_array_almost_equal(yout, youttrue, decimal=4)
         np.testing.assert_array_almost_equal(tout, t)
 
         sys = siso.ss1
-        youttrue = np.array([86., 70.1808, 57.3753, 46.9975, 38.5766, 31.7344,
-                             26.1668, 21.6292, 17.9245, 14.8945])
+        youttrue = np.array(
+            [
+                86.0,
+                70.1808,
+                57.3753,
+                46.9975,
+                38.5766,
+                31.7344,
+                26.1668,
+                21.6292,
+                17.9245,
+                14.8945,
+            ]
+        )
         # produce a warning for a system with direct feedthrough
         with pytest.warns(UserWarning, match="System has direct feedthrough"):
             # Test SISO system
@@ -271,8 +351,20 @@ class TestMatlab:
     def testImpulse_mimo(self, mimo):
         """Test impulse() for MIMO system"""
         t = np.linspace(0, 1, 10)
-        youttrue = np.array([86., 70.1808, 57.3753, 46.9975, 38.5766, 31.7344,
-                             26.1668, 21.6292, 17.9245, 14.8945])
+        youttrue = np.array(
+            [
+                86.0,
+                70.1808,
+                57.3753,
+                46.9975,
+                38.5766,
+                31.7344,
+                26.1668,
+                21.6292,
+                17.9245,
+                14.8945,
+            ]
+        )
         sys = mimo.ss1
         with pytest.warns(UserWarning, match="System has direct feedthrough"):
             y_00, _t = impulse(sys, T=t, input=0, output=0)
@@ -283,9 +375,21 @@ class TestMatlab:
     def testInitial(self, siso):
         """Test initial() for SISO system"""
         t = np.linspace(0, 1, 10)
-        x0 = np.array([[.5], [1.]])
-        youttrue = np.array([11., 8.1494, 5.9361, 4.2258, 2.9118, 1.9092,
-                             1.1508, 0.5833, 0.1645, -0.1391])
+        x0 = np.array([[0.5], [1.0]])
+        youttrue = np.array(
+            [
+                11.0,
+                8.1494,
+                5.9361,
+                4.2258,
+                2.9118,
+                1.9092,
+                1.1508,
+                0.5833,
+                0.1645,
+                -0.1391,
+            ]
+        )
         sys = siso.ss1
         yout, tout = initial(sys, T=t, X0=x0)
         np.testing.assert_array_almost_equal(yout, youttrue, decimal=4)
@@ -300,9 +404,21 @@ class TestMatlab:
     def testInitial_mimo(self, mimo):
         """Test initial() for MIMO system"""
         t = np.linspace(0, 1, 10)
-        x0 = np.array([[.5], [1.], [.5], [1.]])
-        youttrue = np.array([11., 8.1494, 5.9361, 4.2258, 2.9118, 1.9092,
-                             1.1508, 0.5833, 0.1645, -0.1391])
+        x0 = np.array([[0.5], [1.0], [0.5], [1.0]])
+        youttrue = np.array(
+            [
+                11.0,
+                8.1494,
+                5.9361,
+                4.2258,
+                2.9118,
+                1.9092,
+                1.1508,
+                0.5833,
+                0.1645,
+                -0.1391,
+            ]
+        )
         sys = mimo.ss1
         y_00, _t = initial(sys, T=t, X0=x0, input=0, output=0)
         y_11, _t = initial(sys, T=t, X0=x0, input=1, output=1)
@@ -315,9 +431,21 @@ class TestMatlab:
 
         # compute step response - test with state space, and transfer function
         # objects
-        u = np.array([1., 1, 1, 1, 1, 1, 1, 1, 1, 1])
-        youttrue = np.array([9., 17.6457, 24.7072, 30.4855, 35.2234, 39.1165,
-                             42.3227, 44.9694, 47.1599, 48.9776])
+        u = np.array([1.0, 1, 1, 1, 1, 1, 1, 1, 1, 1])
+        youttrue = np.array(
+            [
+                9.0,
+                17.6457,
+                24.7072,
+                30.4855,
+                35.2234,
+                39.1165,
+                42.3227,
+                44.9694,
+                47.1599,
+                48.9776,
+            ]
+        )
         yout, tout, _xout = lsim(siso.ss1, u, t)
         np.testing.assert_array_almost_equal(yout, youttrue, decimal=4)
         np.testing.assert_array_almost_equal(tout, t)
@@ -327,9 +455,21 @@ class TestMatlab:
 
         # test with initial value and special algorithm for ``U=0``
         u = 0
-        x0 = np.array([[.5], [1.]])
-        youttrue = np.array([11., 8.1494, 5.9361, 4.2258, 2.9118, 1.9092,
-                             1.1508, 0.5833, 0.1645, -0.1391])
+        x0 = np.array([[0.5], [1.0]])
+        youttrue = np.array(
+            [
+                11.0,
+                8.1494,
+                5.9361,
+                4.2258,
+                2.9118,
+                1.9092,
+                1.1508,
+                0.5833,
+                0.1645,
+                -0.1391,
+            ]
+        )
         yout, _t, _xout = lsim(siso.ss1, u, t, x0)
         np.testing.assert_array_almost_equal(yout, youttrue, decimal=4)
 
@@ -341,14 +481,35 @@ class TestMatlab:
         """
         t = np.linspace(0, 1, 10)
 
-        u = np.array([[0., 1.], [0, 1], [0, 1], [0, 1], [0, 1],
-                      [0, 1], [0, 1], [0, 1], [0, 1], [0, 1]])
-        x0 = np.array([[.5], [1], [0], [0]])
-        youttrue = np.array([[11., 9.], [8.1494, 17.6457],
-                             [5.9361, 24.7072], [4.2258, 30.4855],
-                             [2.9118, 35.2234], [1.9092, 39.1165],
-                             [1.1508, 42.3227], [0.5833, 44.9694],
-                             [0.1645, 47.1599], [-0.1391, 48.9776]])
+        u = np.array(
+            [
+                [0.0, 1.0],
+                [0, 1],
+                [0, 1],
+                [0, 1],
+                [0, 1],
+                [0, 1],
+                [0, 1],
+                [0, 1],
+                [0, 1],
+                [0, 1],
+            ]
+        )
+        x0 = np.array([[0.5], [1], [0], [0]])
+        youttrue = np.array(
+            [
+                [11.0, 9.0],
+                [8.1494, 17.6457],
+                [5.9361, 24.7072],
+                [4.2258, 30.4855],
+                [2.9118, 35.2234],
+                [1.9092, 39.1165],
+                [1.1508, 42.3227],
+                [0.5833, 44.9694],
+                [0.1645, 47.1599],
+                [-0.1391, 48.9776],
+            ]
+        )
         yout, _t, _xout = lsim(mimo.ss1, u, t, x0)
         np.testing.assert_array_almost_equal(yout, youttrue, decimal=4)
 
@@ -361,7 +522,8 @@ class TestMatlab:
         gm, pm, wg, wp = margin(siso.ss2)
         gm, pm, wg, wp = margin(siso.ss2 * siso.ss2 * 2)
         np.testing.assert_array_almost_equal(
-            [gm, pm, wg, wp], [1.5451, 75.9933, 1.2720, 0.6559], decimal=3)
+            [gm, pm, wg, wp], [1.5451, 75.9933, 1.2720, 0.6559], decimal=3
+        )
 
     def testDcgain(self, siso):
         """Test dcgain() for SISO system"""
@@ -388,14 +550,14 @@ class TestMatlab:
         # All gain values must be approximately equal to the known gain
         np.testing.assert_array_almost_equal(
             [gain_abcd, gain_zpk, gain_numden, gain_sys_ss, gain_sim],
-            [59, 59, 59, 59, 59])
+            [59, 59, 59, 59, 59],
+        )
 
     def testDcgain_mimo(self, mimo):
         """Test dcgain() for MIMO system"""
         gain_mimo = dcgain(mimo.ss1)
         # print('gain_mimo: \n', gain_mimo)
-        np.testing.assert_array_almost_equal(gain_mimo, [[59., 0],
-                                                         [0, 59.]])
+        np.testing.assert_array_almost_equal(gain_mimo, [[59.0, 0], [0, 59.0]])
 
     def testBode(self, siso, mplcleanup):
         """Call bode()"""
@@ -469,7 +631,7 @@ class TestMatlab:
     def testEvalfr_mimo(self, mimo):
         """Test evalfr() MIMO"""
         fr = evalfr(mimo.ss1, 1j)
-        ref = np.array([[44.8 - 21.4j, 0.], [0., 44.8 - 21.4j]])
+        ref = np.array([[44.8 - 21.4j, 0.0], [0.0, 44.8 - 21.4j]])
         np.testing.assert_array_almost_equal(fr, ref)
 
     @slycotonly
@@ -491,8 +653,8 @@ class TestMatlab:
         """Call modred()"""
         modred(siso.ss1, [1])
         modred(siso.ss2 * siso.ss1, [0, 1])
-        modred(siso.ss1, [1], 'matchdc')
-        modred(siso.ss1, [1], 'truncate')
+        modred(siso.ss1, [1], "matchdc")
+        modred(siso.ss1, [1], "truncate")
 
     @slycotonly
     def testPlace_varga(self, siso):
@@ -513,8 +675,9 @@ class TestMatlab:
         (K, S, E) = lqr(siso.ss1.A, siso.ss1.B, np.eye(2), np.eye(1))
 
         # Should work if [Q N;N' R] is positive semi-definite
-        (K, S, E) = lqr(siso.ss2.A, siso.ss2.B, 10 * np.eye(3), np.eye(1),
-                        [[1], [1], [2]])
+        (K, S, E) = lqr(
+            siso.ss2.A, siso.ss2.B, 10 * np.eye(3), np.eye(1), [[1], [1], [2]]
+        )
 
     def testRss(self):
         """Call rss()"""
@@ -541,10 +704,10 @@ class TestMatlab:
     @slycotonly
     def testGram(self, siso):
         """Call gram()"""
-        gram(siso.ss1, 'c')
-        gram(siso.ss2, 'c')
-        gram(siso.ss1, 'o')
-        gram(siso.ss2, 'o')
+        gram(siso.ss1, "c")
+        gram(siso.ss2, "c")
+        gram(siso.ss1, "o")
+        gram(siso.ss2, "o")
 
     def testPade(self):
         """Call pade()"""
@@ -569,7 +732,7 @@ class TestMatlab:
 
     def testUnwrap(self):
         """Call unwrap()"""
-        phase = np.array(range(1, 100)) / 10.
+        phase = np.array(range(1, 100)) / 10.0
         wrapped = phase % (2 * np.pi)
         unwrapped = unwrap(wrapped)
 
@@ -600,78 +763,62 @@ class TestMatlab:
 
     def testDamp(self):
         """Test damp()"""
-        A = np.array([[-0.2, 0.06, 0, -1],
-                      [0, 0, 1, 0],
-                      [-17, 0, -3.8, 1],
-                      [9.4, 0, -0.4, -0.6]])
-        B = np.array([[-0.01, 0.06],
-                      [0, 0],
-                      [-32, 5.4],
-                      [2.6, -7]])
+        A = np.array(
+            [[-0.2, 0.06, 0, -1], [0, 0, 1, 0], [-17, 0, -3.8, 1], [9.4, 0, -0.4, -0.6]]
+        )
+        B = np.array([[-0.01, 0.06], [0, 0], [-32, 5.4], [2.6, -7]])
         C = np.eye(4)
         D = np.zeros((4, 2))
         sys = ss(A, B, C, D)
         wn, Z, p = damp(sys, False)
         # print (wn)
         np.testing.assert_array_almost_equal(
-            wn, np.array([4.07381994, 3.28874827, 3.28874827,
-                          1.08937685e-03]))
+            wn, np.array([4.07381994, 3.28874827, 3.28874827, 1.08937685e-03])
+        )
         np.testing.assert_array_almost_equal(
-            Z, np.array([1.0, 0.07983139, 0.07983139, 1.0]))
+            Z, np.array([1.0, 0.07983139, 0.07983139, 1.0])
+        )
 
     def testConnect(self):
         """Test append() and  connect()"""
-        sys1 = ss([[1., -2],
-                   [3., -4]],
-                  [[5.],
-                   [7]],
-                  [[6, 8]],
-                  [[9.]])
-        sys2 = ss(-1., 1., 1., 0.)
+        sys1 = ss([[1.0, -2], [3.0, -4]], [[5.0], [7]], [[6, 8]], [[9.0]])
+        sys2 = ss(-1.0, 1.0, 1.0, 0.0)
         sys = append(sys1, sys2)
-        Q = np.array([[1, 2],  # basically feedback, output 2 in 1
-                      [2, -1]])
+        Q = np.array([[1, 2], [2, -1]])  # basically feedback, output 2 in 1
         sysc = connect(sys, Q, [2], [1, 2])
         # print(sysc)
         np.testing.assert_array_almost_equal(
-            sysc.A, np.array([[1, -2, 5], [3, -4, 7], [-6, -8, -10]]))
-        np.testing.assert_array_almost_equal(
-            sysc.B, np.array([[0], [0], [1]]))
-        np.testing.assert_array_almost_equal(
-            sysc.C, np.array([[6, 8, 9], [0, 0, 1]]))
-        np.testing.assert_array_almost_equal(
-            sysc.D, np.array([[0], [0]]))
+            sysc.A, np.array([[1, -2, 5], [3, -4, 7], [-6, -8, -10]])
+        )
+        np.testing.assert_array_almost_equal(sysc.B, np.array([[0], [0], [1]]))
+        np.testing.assert_array_almost_equal(sysc.C, np.array([[6, 8, 9], [0, 0, 1]]))
+        np.testing.assert_array_almost_equal(sysc.D, np.array([[0], [0]]))
 
     def testConnect2(self):
         """Test append and connect() case 2"""
-        sys = append(ss([[-5, -2.25],
-                         [4, 0]],
-                        [[2],
-                         [0]],
-                        [[0, 1.125]],
-                        [[0]]),
-                     ss([[-1.6667, 0],
-                         [1, 0]],
-                        [[2], [0]],
-                        [[0, 3.3333]], [[0]]),
-                     1)
-        Q = [[1, 3],
-             [2, 1],
-             [3, -2]]
+        sys = append(
+            ss([[-5, -2.25], [4, 0]], [[2], [0]], [[0, 1.125]], [[0]]),
+            ss([[-1.6667, 0], [1, 0]], [[2], [0]], [[0, 3.3333]], [[0]]),
+            1,
+        )
+        Q = [[1, 3], [2, 1], [3, -2]]
         sysc = connect(sys, Q, [3], [3, 1, 2])
         np.testing.assert_array_almost_equal(
-            sysc.A, np.array([[-5, -2.25, 0, -6.6666],
-                              [4, 0, 0, 0],
-                              [0, 2.25, -1.6667, 0],
-                              [0, 0, 1, 0]]))
+            sysc.A,
+            np.array(
+                [
+                    [-5, -2.25, 0, -6.6666],
+                    [4, 0, 0, 0],
+                    [0, 2.25, -1.6667, 0],
+                    [0, 0, 1, 0],
+                ]
+            ),
+        )
+        np.testing.assert_array_almost_equal(sysc.B, np.array([[2], [0], [0], [0]]))
         np.testing.assert_array_almost_equal(
-            sysc.B, np.array([[2], [0], [0], [0]]))
-        np.testing.assert_array_almost_equal(
-            sysc.C, np.array([[0, 0, 0, -3.3333],
-                              [0, 1.125, 0, 0],
-                              [0, 0, 0, 3.3333]]))
-        np.testing.assert_array_almost_equal(
-            sysc.D, np.array([[1], [0], [0]]))
+            sysc.C, np.array([[0, 0, 0, -3.3333], [0, 1.125, 0, 0], [0, 0, 0, 3.3333]])
+        )
+        np.testing.assert_array_almost_equal(sysc.D, np.array([[1], [0], [0]]))
 
     def testFRD(self):
         """Test frd()"""
@@ -688,11 +835,11 @@ class TestMatlab:
         # A = [-2, 0.5, 0; 0.5, -0.3, 0; 0, 0, -0.1]
         A = [[-2, 0.5, 0], [0.5, -0.3, 0], [0, 0, -0.1]]
         # B = [0.3, -1.3; 0.1, 0; 1, 0]
-        B = [[0.3, -1.3], [0.1, 0.], [1.0, 0.0]]
+        B = [[0.3, -1.3], [0.1, 0.0], [1.0, 0.0]]
         # C = [0, 0.1, 0; -0.3, -0.2, 0]
-        C = [[0., 0.1, 0.0], [-0.3, -0.2, 0.0]]
+        C = [[0.0, 0.1, 0.0], [-0.3, -0.2, 0.0]]
         # D = [0 -0.8; -0.3 0]
-        D = [[0., -0.8], [-0.3, 0.]]
+        D = [[0.0, -0.8], [-0.3, 0.0]]
         # sys = ss(A, B, C, D)
 
         sys = ss(A, B, C, D)
@@ -700,13 +847,12 @@ class TestMatlab:
         assert sysr.nstates == 2
         assert sysr.ninputs == sys.ninputs
         assert sysr.noutputs == sys.noutputs
-        np.testing.assert_array_almost_equal(
-            eigvals(sysr.A), [-2.136154, -0.1638459])
+        np.testing.assert_array_almost_equal(eigvals(sysr.A), [-2.136154, -0.1638459])
 
         s = tf([1, 0], [1])
-        h = (s+1)*(s+2.00000000001)/(s+2)/(s**2+s+1)
+        h = (s + 1) * (s + 2.00000000001) / (s + 2) / (s ** 2 + s + 1)
         hm = minreal(h, verbose=verbose)
-        hr = (s+1)/(s**2+s+1)
+        hr = (s + 1) / (s ** 2 + s + 1)
         np.testing.assert_array_almost_equal(hm.num[0][0], hr.num[0][0])
         np.testing.assert_array_almost_equal(hm.den[0][0], hr.den[0][0])
 
@@ -716,19 +862,29 @@ class TestMatlab:
             np.array([[-3, 4, 2], [-1, -3, 0], [2, 5, 3]]),
             np.array([[1, 4], [-3, -3], [-2, 1]]),
             np.array([[4, 2, -3], [1, 4, 3]]),
-            np.array([[-2, 4], [0, 1]]))
+            np.array([[-2, 4], [0, 1]]),
+        )
         sysd = c2d(sys, 0.1)
         np.testing.assert_array_almost_equal(
             np.array(
-                [[ 0.742840837331905, 0.342242024293711,  0.203124211149560],
-                 [-0.074130792143890, 0.724553295044645, -0.009143771143630],
-                 [ 0.180264783290485, 0.544385612448419,  1.370501013067845]]),
-            sysd.A)
+                [
+                    [0.742840837331905, 0.342242024293711, 0.203124211149560],
+                    [-0.074130792143890, 0.724553295044645, -0.009143771143630],
+                    [0.180264783290485, 0.544385612448419, 1.370501013067845],
+                ]
+            ),
+            sysd.A,
+        )
         np.testing.assert_array_almost_equal(
-            np.array([[ 0.012362066084719,  0.301932197918268],
-                      [-0.260952977031384, -0.274201791021713],
-                      [-0.304617775734327,  0.075182622718853]]),
-            sysd.B)
+            np.array(
+                [
+                    [0.012362066084719, 0.301932197918268],
+                    [-0.260952977031384, -0.274201791021713],
+                    [-0.304617775734327, 0.075182622718853],
+                ]
+            ),
+            sysd.B,
+        )
 
     def testCombi01(self):
         """Test from a "real" case, combines tf, ss, connect and margin.
@@ -744,21 +900,23 @@ class TestMatlab:
 
         # can now define an "s" variable, to make TF's
         s = tf([1, 0], [1])
-        hb1 = 1/(Jb*s)
-        hb2 = 1/s
-        hp1 = 1/(Jp*s)
-        hp2 = 1/s
+        hb1 = 1 / (Jb * s)
+        hb2 = 1 / s
+        hp1 = 1 / (Jp * s)
+        hp2 = 1 / s
 
         # convert to ss and append
         sat0 = append(ss(hb1), ss(hb2), k, b, ss(hp1), ss(hp2))
 
         # connection of the elements with connect call
-        Q = [[1, -3, -4],  # link moment (spring, damper), feedback to body
-             [2,  1,  0],  # link integrator to body velocity
-             [3,  2, -6],  # spring input, th_b - th_p
-             [4,  1, -5],  # damper input
-             [5,  3,  4],  # link moment, acting on payload
-             [6,  5,  0]]
+        Q = [
+            [1, -3, -4],  # link moment (spring, damper), feedback to body
+            [2, 1, 0],  # link integrator to body velocity
+            [3, 2, -6],  # spring input, th_b - th_p
+            [4, 1, -5],  # damper input
+            [5, 3, 4],  # link moment, acting on payload
+            [6, 5, 0],
+        ]
         inputs = [1]
         outputs = [1, 2, 5, 6]
         sat1 = connect(sat0, Q, inputs, outputs)
@@ -767,19 +925,21 @@ class TestMatlab:
         wno = 0.19
         z1 = 0.05
         z2 = 0.7
-        Hno = (1+2*z1/wno*s+s**2/wno**2)/(1+2*z2/wno*s+s**2/wno**2)
+        Hno = (1 + 2 * z1 / wno * s + s ** 2 / wno ** 2) / (
+            1 + 2 * z2 / wno * s + s ** 2 / wno ** 2
+        )
 
         # the controller, Kp = 1 for now
         Kp = 1.64
-        tau_PD = 50.
-        Hc = (1 + tau_PD*s)*Kp
+        tau_PD = 50.0
+        Hc = (1 + tau_PD * s) * Kp
 
         # start with the basic satellite model sat1, and get the
         # payload attitude response
-        Hp = tf(np.array([0, 0, 0, 1])*sat1)
+        Hp = tf(np.array([0, 0, 0, 1]) * sat1)
 
         # total open loop
-        Hol = Hc*Hno*Hp
+        Hol = Hc * Hno * Hp
 
         gm, pm, wg, wp = margin(Hol)
         # print("%f %f %f %f" % (gm, pm, wg, wp))
@@ -790,14 +950,14 @@ class TestMatlab:
 
     def test_tf_string_args(self):
         """Make sure s and z are defined properly"""
-        s = tf('s')
-        G = (s + 1)/(s**2 + 2*s + 1)
+        s = tf("s")
+        G = (s + 1) / (s ** 2 + 2 * s + 1)
         np.testing.assert_array_almost_equal(G.num, [[[1, 1]]])
         np.testing.assert_array_almost_equal(G.den, [[[1, 2, 1]]])
         assert isctime(G, strict=True)
 
-        z = tf('z')
-        G = (z + 1)/(z**2 + 2*z + 1)
+        z = tf("z")
+        G = (z + 1) / (z ** 2 + 2 * z + 1)
         np.testing.assert_array_almost_equal(G.num, [[[1, 1]]])
         np.testing.assert_array_almost_equal(G.den, [[[1, 2, 1]]])
         assert isdtime(G, strict=True)

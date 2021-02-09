@@ -1,4 +1,3 @@
-# -*-coding: utf-8-*-
 #! TODO: add module docstring
 # delay.py - functions involving time delays
 #
@@ -42,9 +41,8 @@
 #
 # $Id$
 
-from __future__ import division
+__all__ = ["pade"]
 
-__all__ = ['pade']
 
 def pade(T, n=1, numdeg=None):
     """
@@ -89,26 +87,30 @@ def pade(T, n=1, numdeg=None):
         raise ValueError("require 0 <= numdeg <= n")
 
     if T == 0:
-        num = [1,]
-        den = [1,]
+        num = [
+            1,
+        ]
+        den = [
+            1,
+        ]
     else:
-        num = [0. for i in range(numdeg+1)]
-        num[-1] = 1.
-        cn = 1.
-        for k in range(1, numdeg+1):
+        num = [0.0 for i in range(numdeg + 1)]
+        num[-1] = 1.0
+        cn = 1.0
+        for k in range(1, numdeg + 1):
             # derived from Gloub and van Loan eq. for Dpq(z) on p. 572
             # this accumulative style follows Alg 11.3.1
-            cn *= -T * (numdeg - k + 1)/(numdeg + n - k + 1)/k
-            num[numdeg-k] = cn
+            cn *= -T * (numdeg - k + 1) / (numdeg + n - k + 1) / k
+            num[numdeg - k] = cn
 
-        den = [0. for i in range(n+1)]
-        den[-1] = 1.
-        cd = 1.
-        for k in range(1, n+1):
+        den = [0.0 for i in range(n + 1)]
+        den[-1] = 1.0
+        cd = 1.0
+        for k in range(1, n + 1):
             # see cn above
-            cd *= T * (n - k + 1)/(numdeg + n - k + 1)/k
-            den[n-k] = cd
+            cd *= T * (n - k + 1) / (numdeg + n - k + 1) / k
+            den[n - k] = cd
 
-        num = [coeff/den[0] for coeff in num]
-        den = [coeff/den[0] for coeff in den]
+        num = [coeff / den[0] for coeff in num]
+        den = [coeff / den[0] for coeff in den]
     return num, den

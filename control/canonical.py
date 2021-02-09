@@ -1,23 +1,42 @@
 # canonical.py - functions for converting systems to canonical forms
 # RMM, 10 Nov 2012
-
-from .exception import ControlNotImplemented, ControlSlycot
-from .lti import issiso
-from .statesp import StateSpace, _convert_to_statespace
-from .statefbk import ctrb, obsv
-
 import numpy as np
-
-from numpy import zeros, zeros_like, shape, poly, iscomplex, vstack, hstack, dot, \
-    transpose, empty, finfo, float64
-from numpy.linalg import solve, matrix_rank, eig
-
+from numpy import dot
+from numpy import empty
+from numpy import finfo
+from numpy import float64
+from numpy import hstack
+from numpy import iscomplex
+from numpy import poly
+from numpy import shape
+from numpy import transpose
+from numpy import vstack
+from numpy import zeros
+from numpy import zeros_like
+from numpy.linalg import eig
+from numpy.linalg import matrix_rank
+from numpy.linalg import solve
 from scipy.linalg import schur
 
-__all__ = ['canonical_form', 'reachable_form', 'observable_form', 'modal_form',
-           'similarity_transform', 'bdschur']
+from .exception import ControlNotImplemented
+from .exception import ControlSlycot
+from .lti import issiso
+from .statefbk import ctrb
+from .statefbk import obsv
+from .statesp import _convert_to_statespace
+from .statesp import StateSpace
 
-def canonical_form(xsys, form='reachable'):
+__all__ = [
+    "canonical_form",
+    "reachable_form",
+    "observable_form",
+    "modal_form",
+    "similarity_transform",
+    "bdschur",
+]
+
+
+def canonical_form(xsys, form="reachable"):
     """Convert a system into canonical form
 
     Parameters
@@ -39,15 +58,14 @@ def canonical_form(xsys, form='reachable'):
     """
 
     # Call the appropriate tranformation function
-    if form == 'reachable':
+    if form == "reachable":
         return reachable_form(xsys)
-    elif form == 'observable':
+    elif form == "observable":
         return observable_form(xsys)
-    elif form == 'modal':
+    elif form == "modal":
         return modal_form(xsys)
     else:
-        raise ControlNotImplemented(
-            "Canonical form '%s' not yet implemented" % form)
+        raise ControlNotImplemented("Canonical form '%s' not yet implemented" % form)
 
 
 # Reachable canonical form
@@ -69,7 +87,8 @@ def reachable_form(xsys):
     # Check to make sure we have a SISO system
     if not issiso(xsys):
         raise ControlNotImplemented(
-            "Canonical forms for MIMO systems not yet supported")
+            "Canonical forms for MIMO systems not yet supported"
+        )
 
     # Create a new system, starting with a copy of the old one
     zsys = StateSpace(xsys)
@@ -78,11 +97,11 @@ def reachable_form(xsys):
     zsys.B = zeros_like(xsys.B)
     zsys.B[0, 0] = 1.0
     zsys.A = zeros_like(xsys.A)
-    Apoly = poly(xsys.A)                # characteristic polynomial
+    Apoly = poly(xsys.A)  # characteristic polynomial
     for i in range(0, xsys.nstates):
-        zsys.A[0, i] = -Apoly[i+1] / Apoly[0]
-        if (i+1 < xsys.nstates):
-            zsys.A[i+1, i] = 1.0
+        zsys.A[0, i] = -Apoly[i + 1] / Apoly[0]
+        if i + 1 < xsys.nstates:
+            zsys.A[i + 1, i] = 1.0
 
     # Compute the reachability matrices for each set of states
     Wrx = ctrb(xsys.A, xsys.B)
@@ -96,11 +115,13 @@ def reachable_form(xsys):
 
     # Check to make sure inversion was OK.  Note that since we are inverting
     # Wrx and we already checked its rank, this exception should never occur
-    if matrix_rank(Tzx) != xsys.nstates:         # pragma: no cover
+    if matrix_rank(Tzx) != xsys.nstates:  # pragma: no cover
         raise ValueError("Transformation matrix singular to working precision.")
 
     # Finally, compute the output matrix
-    zsys.C = solve(Tzx.T, xsys.C.T).T  # matrix right division, zsys.C = xsys.C * inv(Tzx)
+    zsys.C = solve(
+        Tzx.T, xsys.C.T
+    ).T  # matrix right division, zsys.C = xsys.C * inv(Tzx)
 
     return zsys, Tzx
 
@@ -123,7 +144,8 @@ def observable_form(xsys):
     # Check to make sure we have a SISO system
     if not issiso(xsys):
         raise ControlNotImplemented(
-            "Canonical forms for MIMO systems not yet supported")
+            "Canonical forms for MIMO systems not yet supported"
+        )
 
     # Create a new system, starting with a copy of the old one
     zsys = StateSpace(xsys)
@@ -132,11 +154,11 @@ def observable_form(xsys):
     zsys.C = zeros_like(xsys.C)
     zsys.C[0, 0] = 1
     zsys.A = zeros_like(xsys.A)
-    Apoly = poly(xsys.A)                # characteristic polynomial
+    Apoly = poly(xsys.A)  # characteristic polynomial
     for i in range(0, xsys.nstates):
-        zsys.A[i, 0] = -Apoly[i+1] / Apoly[0]
-        if (i+1 < xsys.nstates):
-            zsys.A[i, i+1] = 1
+        zsys.A[i, 0] = -Apoly[i + 1] / Apoly[0]
+        if i + 1 < xsys.nstates:
+            zsys.A[i, i + 1] = 1
 
     # Compute the observability matrices for each set of states
     Wrx = obsv(xsys.A, xsys.C)
@@ -283,22 +305,30 @@ def _bdschur_condmax_search(aschur, tschur, condmax):
 
     # get lower bound; try condmax ** 0.5 first
     pmaxlower = condmax ** 0.5
-    amodal, tmodal, blksizes, eigvals = mb03rd(aschur.shape[0], aschur, tschur, pmax=pmaxlower)
+    amodal, tmodal, blksizes, eigvals = mb03rd(
+        aschur.shape[0], aschur, tschur, pmax=pmaxlower
+    )
     if np.linalg.cond(tmodal) <= condmax:
         reslower = amodal, tmodal, blksizes, eigvals
     else:
         pmaxlower = 1.0
-        amodal, tmodal, blksizes, eigvals = mb03rd(aschur.shape[0], aschur, tschur, pmax=pmaxlower)
+        amodal, tmodal, blksizes, eigvals = mb03rd(
+            aschur.shape[0], aschur, tschur, pmax=pmaxlower
+        )
         cond = np.linalg.cond(tmodal)
         if cond > condmax:
-            msg = 'minimum cond={} > condmax={}; try increasing condmax'.format(cond, condmax)
+            msg = "minimum cond={} > condmax={}; try increasing condmax".format(
+                cond, condmax
+            )
             raise RuntimeError(msg)
 
     pmax = pmaxlower
 
     # phase 1: search for upper bound on pmax
     for i in range(50):
-        amodal, tmodal, blksizes, eigvals = mb03rd(aschur.shape[0], aschur, tschur, pmax=pmax)
+        amodal, tmodal, blksizes, eigvals = mb03rd(
+            aschur.shape[0], aschur, tschur, pmax=pmax
+        )
         cond = np.linalg.cond(tmodal)
         if cond < condmax:
             pmaxlower = pmax
@@ -319,7 +349,9 @@ def _bdschur_condmax_search(aschur, tschur, condmax):
     # phase 2: bisection search
     for i in range(50):
         pmax = (pmaxlower * pmaxupper) ** 0.5
-        amodal, tmodal, blksizes, eigvals = mb03rd(aschur.shape[0], aschur, tschur, pmax=pmax)
+        amodal, tmodal, blksizes, eigvals = mb03rd(
+            aschur.shape[0], aschur, tschur, pmax=pmax
+        )
         cond = np.linalg.cond(tmodal)
 
         if cond < condmax:
@@ -334,7 +366,11 @@ def _bdschur_condmax_search(aschur, tschur, condmax):
             # hit search limit
             return reslower
     else:
-        raise ValueError('bisection failed to converge; pmaxlower={}, pmaxupper={}'.format(pmaxlower, pmaxupper))
+        raise ValueError(
+            "bisection failed to converge; pmaxlower={}, pmaxupper={}".format(
+                pmaxlower, pmaxupper
+            )
+        )
 
 
 def bdschur(a, condmax=None, sort=None):
@@ -375,7 +411,7 @@ def bdschur(a, condmax=None, sort=None):
         condmax = np.finfo(np.float64).eps ** -0.5
 
     if not (np.isscalar(condmax) and condmax >= 1.0):
-        raise ValueError('condmax="{}" must be a scalar >= 1.0'.format(condmax))
+        raise ValueError(f'condmax="{condmax}" must be a scalar >= 1.0')
 
     a = np.atleast_2d(a)
     if a.shape[0] == 0 or a.shape[1] == 0:
@@ -384,22 +420,20 @@ def bdschur(a, condmax=None, sort=None):
     aschur, tschur = schur(a)
     amodal, tmodal, blksizes, eigvals = _bdschur_condmax_search(aschur, tschur, condmax)
 
-    if sort in ('continuous', 'discrete'):
+    if sort in ("continuous", "discrete"):
 
         idxs = np.cumsum(np.hstack([0, blksizes[:-1]]))
 
-        ev_per_blk = [complex(eigvals[i].real, abs(eigvals[i].imag))
-                      for i in idxs]
+        ev_per_blk = [complex(eigvals[i].real, abs(eigvals[i].imag)) for i in idxs]
 
-        if sort == 'discrete':
+        if sort == "discrete":
             ev_per_blk = np.log(ev_per_blk)
 
         # put most unstable first
         sortidx = np.argsort(ev_per_blk)[::-1]
 
         # block indices
-        blkidxs = [np.arange(i0, i0+ilen)
-                   for i0, ilen in zip(idxs, blksizes)]
+        blkidxs = [np.arange(i0, i0 + ilen) for i0, ilen in zip(idxs, blksizes)]
 
         # reordered
         permidx = np.hstack([blkidxs[i] for i in sortidx])
@@ -413,7 +447,7 @@ def bdschur(a, condmax=None, sort=None):
         pass
 
     else:
-        raise ValueError('unknown sort value "{}"'.format(sort))
+        raise ValueError(f'unknown sort value "{sort}"')
 
     return amodal, tmodal, blksizes
 
@@ -440,7 +474,7 @@ def modal_form(xsys, condmax=None, sort=False):
 
     if sort:
         discrete = xsys.dt is not None and xsys.dt > 0
-        bd_sort = 'discrete' if discrete else 'continuous'
+        bd_sort = "discrete" if discrete else "continuous"
     else:
         bd_sort = None
 

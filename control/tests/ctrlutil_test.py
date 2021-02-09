@@ -1,8 +1,10 @@
 """ctrlutil_test.py"""
-
 import numpy as np
 
-from control.ctrlutil import db2mag, mag2db, unwrap
+from control.ctrlutil import db2mag
+from control.ctrlutil import mag2db
+from control.ctrlutil import unwrap
+
 
 class TestUtils:
 
@@ -35,8 +37,8 @@ class TestUtils:
         self.check_unwrap_array(angle, 360)
 
     def test_unwrap_large_skips(self):
-        angle = np.array([0., 4 * np.pi, -2 * np.pi])
-        np.testing.assert_array_almost_equal(unwrap(angle), [0., 0., 0.])
+        angle = np.array([0.0, 4 * np.pi, -2 * np.pi])
+        np.testing.assert_array_almost_equal(unwrap(angle), [0.0, 0.0, 0.0])
 
     def test_unwrap_list(self):
         angle = [0, 2.2, 5.4, -0.4]

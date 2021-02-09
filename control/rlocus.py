@@ -47,36 +47,52 @@
 #   * added compatibility with discrete-time systems.
 #
 # $Id$
-
 # Packages used by this module
 from functools import partial
-import numpy as np
+
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-from numpy import array, poly1d, row_stack, zeros_like, real, imag
-import scipy.signal             # signal processing toolbox
-from .lti import isdtime
-from .xferfcn import _convert_to_transfer_function
-from .exception import ControlMIMONotImplemented
-from .sisotool import _SisotoolUpdate
-from .grid import sgrid, zgrid
-from . import config
+import numpy as np
+import scipy.signal  # signal processing toolbox
+from numpy import array
+from numpy import imag
+from numpy import poly1d
+from numpy import real
+from numpy import row_stack
+from numpy import zeros_like
 
-__all__ = ['root_locus', 'rlocus']
+from . import config
+from .exception import ControlMIMONotImplemented
+from .grid import sgrid
+from .grid import zgrid
+from .lti import isdtime
+from .sisotool import _SisotoolUpdate
+from .xferfcn import _convert_to_transfer_function
+
+__all__ = ["root_locus", "rlocus"]
 
 # Default values for module parameters
 _rlocus_defaults = {
-    'rlocus.grid': True,
-    'rlocus.plotstr': 'b' if int(mpl.__version__[0]) == 1 else 'C0',
-    'rlocus.print_gain': True,
-    'rlocus.plot': True
+    "rlocus.grid": True,
+    "rlocus.plotstr": "b" if int(mpl.__version__[0]) == 1 else "C0",
+    "rlocus.print_gain": True,
+    "rlocus.plot": True,
 }
 
 
 # Main function: compute a root locus diagram
-def root_locus(sys, kvect=None, xlim=None, ylim=None,
-               plotstr=None, plot=True, print_gain=None, grid=None, ax=None,
-               **kwargs):
+def root_locus(
+    sys,
+    kvect=None,
+    xlim=None,
+    ylim=None,
+    plotstr=None,
+    plot=True,
+    print_gain=None,
+    grid=None,
+    ax=None,
+    **kwargs,
+):
 
     """Root locus plot
 
@@ -116,28 +132,32 @@ def root_locus(sys, kvect=None, xlim=None, ylim=None,
         Gains used.  Same as klist keyword argument if provided.
     """
     # Check to see if legacy 'Plot' keyword was used
-    if 'Plot' in kwargs:
+    if "Plot" in kwargs:
         import warnings
-        warnings.warn("'Plot' keyword is deprecated in root_locus; "
-                      "use 'plot'", FutureWarning)
+
+        warnings.warn(
+            "'Plot' keyword is deprecated in root_locus; use 'plot'", FutureWarning
+        )
         # Map 'Plot' keyword to 'plot' keyword
-        plot = kwargs.pop('Plot')
+        plot = kwargs.pop("Plot")
 
     # Check to see if legacy 'PrintGain' keyword was used
-    if 'PrintGain' in kwargs:
+    if "PrintGain" in kwargs:
         import warnings
-        warnings.warn("'PrintGain' keyword is deprecated in root_locus; "
-                      "use 'print_gain'", FutureWarning)
+
+        warnings.warn(
+            "'PrintGain' keyword is deprecated in root_locus; use 'print_gain'",
+            FutureWarning,
+        )
         # Map 'PrintGain' keyword to 'print_gain' keyword
-        print_gain = kwargs.pop('PrintGain')
+        print_gain = kwargs.pop("PrintGain")
 
     # Get parameter values
-    plotstr = config._get_param('rlocus', 'plotstr', plotstr, _rlocus_defaults)
-    grid = config._get_param('rlocus', 'grid', grid, _rlocus_defaults)
-    print_gain = config._get_param(
-        'rlocus', 'print_gain', print_gain, _rlocus_defaults)
+    plotstr = config._get_param("rlocus", "plotstr", plotstr, _rlocus_defaults)
+    grid = config._get_param("rlocus", "grid", grid, _rlocus_defaults)
+    print_gain = config._get_param("rlocus", "print_gain", print_gain, _rlocus_defaults)
 
-    sys_loop = sys if sys.issiso() else sys[0,0]
+    sys_loop = sys if sys.issiso() else sys[0, 0]
 
     # Convert numerator and denominator to polynomials if they aren't
     (nump, denp) = _systopoly1d(sys_loop)
@@ -158,71 +178,88 @@ def root_locus(sys, kvect=None, xlim=None, ylim=None,
         mymat = _RLSortRoots(mymat)
 
     # Check for sisotool mode
-    sisotool = False if 'sisotool' not in kwargs else True
+    sisotool = False if "sisotool" not in kwargs else True
 
     # Create the Plot
     if plot:
         if sisotool:
-            fig = kwargs['fig']
+            fig = kwargs["fig"]
             ax = fig.axes[1]
         else:
             if ax is None:
                 ax = plt.gca()
                 fig = ax.figure
-                ax.set_title('Root Locus')
+                ax.set_title("Root Locus")
 
         if print_gain and not sisotool:
             fig.canvas.mpl_connect(
-                'button_release_event',
-                partial(_RLClickDispatcher, sys=sys, fig=fig,
-                        ax_rlocus=fig.axes[0], plotstr=plotstr))
+                "button_release_event",
+                partial(
+                    _RLClickDispatcher,
+                    sys=sys,
+                    fig=fig,
+                    ax_rlocus=fig.axes[0],
+                    plotstr=plotstr,
+                ),
+            )
         elif sisotool:
             fig.axes[1].plot(
                 [root.real for root in start_mat],
                 [root.imag for root in start_mat],
-                'm.', marker='s', markersize=8, zorder=20, label='gain_point')
+                "m.",
+                marker="s",
+                markersize=8,
+                zorder=20,
+                label="gain_point",
+            )
             s = start_mat[0][0]
             if isdtime(sys, strict=True):
                 zeta = -np.cos(np.angle(np.log(s)))
             else:
                 zeta = -1 * s.real / abs(s)
             fig.suptitle(
-                "Clicked at: %10.4g%+10.4gj  gain: %10.4g  damp: %10.4g" %
-                (s.real, s.imag, 1, zeta),
-                fontsize=12 if int(mpl.__version__[0]) == 1 else 10)
+                "Clicked at: %10.4g%+10.4gj  gain: %10.4g  damp: %10.4g"
+                % (s.real, s.imag, 1, zeta),
+                fontsize=12 if int(mpl.__version__[0]) == 1 else 10,
+            )
             fig.canvas.mpl_connect(
-                'button_release_event',
-                partial(_RLClickDispatcher, sys=sys, fig=fig,
-                        ax_rlocus=fig.axes[1], plotstr=plotstr,
-                        sisotool=sisotool,
-                        bode_plot_params=kwargs['bode_plot_params'],
-                        tvect=kwargs['tvect']))
+                "button_release_event",
+                partial(
+                    _RLClickDispatcher,
+                    sys=sys,
+                    fig=fig,
+                    ax_rlocus=fig.axes[1],
+                    plotstr=plotstr,
+                    sisotool=sisotool,
+                    bode_plot_params=kwargs["bode_plot_params"],
+                    tvect=kwargs["tvect"],
+                ),
+            )
 
         # zoom update on xlim/ylim changed, only then data on new limits
         # is available, i.e., cannot combine with _RLClickDispatcher
-        dpfun = partial(
-            _RLZoomDispatcher, sys=sys, ax_rlocus=ax, plotstr=plotstr)
+        dpfun = partial(_RLZoomDispatcher, sys=sys, ax_rlocus=ax, plotstr=plotstr)
         # TODO: the next too lines seem to take a long time to execute
         # TODO: is there a way to speed them up?  (RMM, 6 Jun 2019)
-        ax.callbacks.connect('xlim_changed', dpfun)
-        ax.callbacks.connect('ylim_changed', dpfun)
+        ax.callbacks.connect("xlim_changed", dpfun)
+        ax.callbacks.connect("ylim_changed", dpfun)
 
         # plot open loop poles
         poles = array(denp.r)
-        ax.plot(real(poles), imag(poles), 'x')
+        ax.plot(real(poles), imag(poles), "x")
 
         # plot open loop zeros
         zeros = array(nump.r)
         if zeros.size > 0:
-            ax.plot(real(zeros), imag(zeros), 'o')
+            ax.plot(real(zeros), imag(zeros), "o")
 
         # Now plot the loci
         for index, col in enumerate(mymat.T):
-            ax.plot(real(col), imag(col), plotstr, label='rootlocus')
+            ax.plot(real(col), imag(col), plotstr, label="rootlocus")
 
         # Set up plot axes and labels
-        ax.set_xlabel('Real')
-        ax.set_ylabel('Imaginary')
+        ax.set_xlabel("Real")
+        ax.set_ylabel("Imaginary")
 
         # Set up the limits for the plot
         # Note: need to do this before computing grid lines
@@ -243,12 +280,20 @@ def root_locus(sys, kvect=None, xlim=None, ylim=None,
             else:
                 _sgrid_func()
         else:
-            ax.axhline(0., linestyle=':', color='k', linewidth=.75, zorder=-20)
-            ax.axvline(0., linestyle=':', color='k', linewidth=.75, zorder=-20)
+            ax.axhline(0.0, linestyle=":", color="k", linewidth=0.75, zorder=-20)
+            ax.axvline(0.0, linestyle=":", color="k", linewidth=0.75, zorder=-20)
             if isdtime(sys, strict=True):
-                ax.add_patch(plt.Circle(
-                    (0, 0), radius=1.0, linestyle=':', edgecolor='k',
-                    linewidth=0.75, fill=False, zorder=-20))
+                ax.add_patch(
+                    plt.Circle(
+                        (0, 0),
+                        radius=1.0,
+                        linestyle=":",
+                        edgecolor="k",
+                        linewidth=0.75,
+                        fill=False,
+                        zorder=-20,
+                    )
+                )
 
     return mymat, kvect
 
@@ -272,12 +317,11 @@ def _default_gains(num, den, xlim, ylim, zoom_xlim=None, zoom_ylim=None):
     open_loop_poles = den.roots
     open_loop_zeros = num.roots
 
-    if open_loop_zeros.size != 0 and \
-       open_loop_zeros.size < open_loop_poles.size:
+    if open_loop_zeros.size != 0 and open_loop_zeros.size < open_loop_poles.size:
         open_loop_zeros_xl = np.append(
             open_loop_zeros,
-            np.ones(open_loop_poles.size - open_loop_zeros.size)
-            * open_loop_zeros[-1])
+            np.ones(open_loop_poles.size - open_loop_zeros.size) * open_loop_zeros[-1],
+        )
         mymat_xl = np.append(mymat, open_loop_zeros_xl)
     else:
         mymat_xl = mymat
@@ -289,21 +333,24 @@ def _default_gains(num, den, xlim, ylim, zoom_xlim=None, zoom_ylim=None):
     false_gain = float(den.coeffs[0]) / float(num.coeffs[0])
     if false_gain < 0 and not den.order > num.order:
         # TODO: make error message more understandable
-        raise ValueError("Not implemented support for 0 degrees root locus "
-                         "with equal order of numerator and denominator.")
+        raise ValueError(
+            "Not implemented support for 0 degrees root locus "
+            "with equal order of numerator and denominator."
+        )
 
     if xlim is None and false_gain > 0:
-        x_tolerance = 0.05 * (np.max(np.real(mymat_xl))
-                              - np.min(np.real(mymat_xl)))
+        x_tolerance = 0.05 * (np.max(np.real(mymat_xl)) - np.min(np.real(mymat_xl)))
         xlim = _ax_lim(mymat_xl)
     elif xlim is None and false_gain < 0:
-        axmin = np.min(np.real(important_points)) \
-            - (np.max(np.real(important_points))
-               - np.min(np.real(important_points)))
+        axmin = np.min(np.real(important_points)) - (
+            np.max(np.real(important_points)) - np.min(np.real(important_points))
+        )
         axmin = np.min(np.array([axmin, np.min(np.real(mymat_xl))]))
-        axmax = np.max(np.real(important_points)) \
-            + np.max(np.real(important_points)) \
+        axmax = (
+            np.max(np.real(important_points))
+            + np.max(np.real(important_points))
             - np.min(np.real(important_points))
+        )
         axmax = np.max(np.array([axmax, np.max(np.real(mymat_xl))]))
         xlim = [axmin, axmax]
         x_tolerance = 0.05 * (axmax - axmin)
@@ -311,8 +358,7 @@ def _default_gains(num, den, xlim, ylim, zoom_xlim=None, zoom_ylim=None):
         x_tolerance = 0.05 * (xlim[1] - xlim[0])
 
     if ylim is None:
-        y_tolerance = 0.05 * (np.max(np.imag(mymat_xl))
-                              - np.min(np.imag(mymat_xl)))
+        y_tolerance = 0.05 * (np.max(np.imag(mymat_xl)) - np.min(np.imag(mymat_xl)))
         ylim = _ax_lim(mymat_xl * 1j)
     else:
         y_tolerance = 0.05 * (ylim[1] - ylim[0])
@@ -331,7 +377,7 @@ def _default_gains(num, den, xlim, ylim, zoom_xlim=None, zoom_ylim=None):
     # Add more points into the root locus for points that are too far apart
     while len(indexes_too_far) > 0 and kvect.size < 5000:
         for counter, index in enumerate(indexes_too_far):
-            index = index + counter*3
+            index = index + counter * 3
             new_gains = np.linspace(kvect[index], kvect[index + 1], 5)
             new_points = _RLFindRoots(num, den, new_gains[1:4])
             kvect = np.insert(kvect, index + 1, new_gains[1:4])
@@ -340,7 +386,7 @@ def _default_gains(num, den, xlim, ylim, zoom_xlim=None, zoom_ylim=None):
         mymat = _RLSortRoots(mymat)
         indexes_too_far = _indexes_filt(mymat, tolerance, zoom_xlim, zoom_ylim)
 
-    new_gains = kvect[-1] * np.hstack((np.logspace(0, 3, 4)))
+    new_gains = kvect[-1] * np.hstack(np.logspace(0, 3, 4))
     new_points = _RLFindRoots(num, den, new_gains[1:4])
     kvect = np.append(kvect, new_gains[1:4])
     mymat = np.concatenate((mymat, new_points), axis=0)
@@ -363,13 +409,15 @@ def _indexes_filt(mymat, tolerance, zoom_xlim=None, zoom_ylim=None):
         y_tolerance_zoom = 0.05 * (zoom_ylim[1] - zoom_ylim[0])
         tolerance_zoom = np.min([x_tolerance_zoom, y_tolerance_zoom])
         indexes_too_far_zoom = list(
-            np.unique(np.where(distance_points > tolerance_zoom)[0]))
+            np.unique(np.where(distance_points > tolerance_zoom)[0])
+        )
         indexes_too_far_filtered = []
 
         for index in indexes_too_far_zoom:
             for point in mymat[index]:
-                if (zoom_xlim[0] <= point.real <= zoom_xlim[1]) and \
-                   (zoom_ylim[0] <= point.imag <= zoom_ylim[1]):
+                if (zoom_xlim[0] <= point.real <= zoom_xlim[1]) and (
+                    zoom_ylim[0] <= point.imag <= zoom_ylim[1]
+                ):
                     indexes_too_far_filtered.append(index)
                     break
 
@@ -378,23 +426,19 @@ def _indexes_filt(mymat, tolerance, zoom_xlim=None, zoom_ylim=None):
             limits = [zoom_xlim[0], zoom_xlim[1], zoom_ylim[0], zoom_ylim[1]]
             for index, limit in enumerate(limits):
                 if index <= 1:
-                    asign = np.sign(real(mymat)-limit)
+                    asign = np.sign(real(mymat) - limit)
                 else:
                     asign = np.sign(imag(mymat) - limit)
-                signchange = ((np.roll(asign, 1, axis=0)
-                               - asign) != 0).astype(int)
-                signchange[0] = np.zeros((len(mymat[0])))
+                signchange = ((np.roll(asign, 1, axis=0) - asign) != 0).astype(int)
+                signchange[0] = np.zeros(len(mymat[0]))
                 if len(np.where(signchange == 1)[0]) > 0:
-                    indexes_too_far_filtered.append(
-                        np.where(signchange == 1)[0][0]-1)
+                    indexes_too_far_filtered.append(np.where(signchange == 1)[0][0] - 1)
 
         if len(indexes_too_far_filtered) > 0:
             if indexes_too_far_filtered[0] != 0:
-                indexes_too_far_filtered.insert(
-                    0, indexes_too_far_filtered[0]-1)
+                indexes_too_far_filtered.insert(0, indexes_too_far_filtered[0] - 1)
             if not indexes_too_far_filtered[-1] + 1 >= len(mymat) - 2:
-                indexes_too_far_filtered.append(
-                    indexes_too_far_filtered[-1] + 1)
+                indexes_too_far_filtered.append(indexes_too_far_filtered[-1] + 1)
 
         indexes_too_far.extend(indexes_too_far_filtered)
 
@@ -413,7 +457,7 @@ def _break_points(num, den):
     # don't care about infinite break points
     real_break_pts = real_break_pts[num(real_break_pts) != 0]
     k_break = -den(real_break_pts) / num(real_break_pts)
-    idx = k_break >= 0   # only positives gains
+    idx = k_break >= 0  # only positives gains
     k_break = k_break[idx]
     real_break_pts = real_break_pts[idx]
     if len(k_break) == 0:
@@ -429,7 +473,7 @@ def _ax_lim(mymat):
     if axmax != axmin:
         deltax = (axmax - axmin) * 0.02
     else:
-        deltax = np.max([1., axmax / 2])
+        deltax = np.max([1.0, axmax / 2])
     axlim = [axmin - deltax, axmax + deltax]
     return axlim
 
@@ -438,32 +482,27 @@ def _k_max(num, den, real_break_points, k_break_points):
     """"Calculate the maximum gain for the root locus shown in the figure."""
     asymp_number = den.order - num.order
     singular_points = np.concatenate((num.roots, den.roots), axis=0)
-    important_points = np.concatenate(
-        (singular_points, real_break_points), axis=0)
+    important_points = np.concatenate((singular_points, real_break_points), axis=0)
     false_gain = den.coeffs[0] / num.coeffs[0]
 
     if asymp_number > 0:
-        asymp_center = (np.sum(den.roots) - np.sum(num.roots))/asymp_number
+        asymp_center = (np.sum(den.roots) - np.sum(num.roots)) / asymp_number
         distance_max = 4 * np.max(np.abs(important_points - asymp_center))
-        asymp_angles = (2 * np.arange(0, asymp_number) - 1) \
-            * np.pi / asymp_number
+        asymp_angles = (2 * np.arange(0, asymp_number) - 1) * np.pi / asymp_number
         if false_gain > 0:
             # farthest points over asymptotes
-            farthest_points = asymp_center \
-                + distance_max * np.exp(asymp_angles * 1j)
+            farthest_points = asymp_center + distance_max * np.exp(asymp_angles * 1j)
         else:
             asymp_angles = asymp_angles + np.pi
             # farthest points over asymptotes
-            farthest_points = asymp_center \
-                + distance_max * np.exp(asymp_angles * 1j)
-        kmax_asymp = np.real(np.abs(den(farthest_points)
-                                    / num(farthest_points)))
+            farthest_points = asymp_center + distance_max * np.exp(asymp_angles * 1j)
+        kmax_asymp = np.real(np.abs(den(farthest_points) / num(farthest_points)))
     else:
-        kmax_asymp = np.abs([np.abs(den.coeffs[0])
-                             / np.abs(num.coeffs[0]) * 3])
+        kmax_asymp = np.abs([np.abs(den.coeffs[0]) / np.abs(num.coeffs[0]) * 3])
 
-    kmax = np.max(np.concatenate((np.real(kmax_asymp),
-                                  np.real(k_break_points)), axis=0))
+    kmax = np.max(
+        np.concatenate((np.real(kmax_asymp), np.real(k_break_points)), axis=0)
+    )
     if np.abs(false_gain) > kmax:
         kmax = np.abs(false_gain)
     return kmax
@@ -472,7 +511,7 @@ def _k_max(num, den, real_break_points, k_break_points):
 def _systopoly1d(sys):
     """Extract numerator and denominator polynomails for a system"""
     # Allow inputs from the signal processing toolbox
-    if (isinstance(sys, scipy.signal.lti)):
+    if isinstance(sys, scipy.signal.lti):
         nump = sys.num
         denp = sys.den
 
@@ -489,10 +528,10 @@ def _systopoly1d(sys):
         denp = sys.den[0][0]
 
     # Check to see if num, den are already polynomials; otherwise convert
-    if (not isinstance(nump, poly1d)):
+    if not isinstance(nump, poly1d):
         nump = poly1d(nump)
 
-    if (not isinstance(denp, poly1d)):
+    if not isinstance(denp, poly1d):
         denp = poly1d(denp)
 
     return (nump, denp)
@@ -532,7 +571,7 @@ def _RLSortRoots(mymat):
             # previous row
             available = list(range(len(prevrow)))
             for elem in row:
-                evect = elem-prevrow[available]
+                evect = elem - prevrow[available]
                 ind1 = abs(evect).argmin()
                 ind = available.pop(ind1)
                 sorted[n, ind] = elem
@@ -542,28 +581,39 @@ def _RLSortRoots(mymat):
 
 def _RLZoomDispatcher(event, sys, ax_rlocus, plotstr):
     """Rootlocus plot zoom dispatcher"""
-    sys_loop = sys if sys.issiso() else sys[0,0]
+    sys_loop = sys if sys.issiso() else sys[0, 0]
 
     nump, denp = _systopoly1d(sys_loop)
     xlim, ylim = ax_rlocus.get_xlim(), ax_rlocus.get_ylim()
 
     kvect, mymat, xlim, ylim = _default_gains(
-        nump, denp, xlim=None, ylim=None, zoom_xlim=xlim, zoom_ylim=ylim)
-    _removeLine('rootlocus', ax_rlocus)
+        nump, denp, xlim=None, ylim=None, zoom_xlim=xlim, zoom_ylim=ylim
+    )
+    _removeLine("rootlocus", ax_rlocus)
 
     for i, col in enumerate(mymat.T):
-        ax_rlocus.plot(real(col), imag(col), plotstr, label='rootlocus',
-                       scalex=False, scaley=False)
+        ax_rlocus.plot(
+            real(col), imag(col), plotstr, label="rootlocus", scalex=False, scaley=False
+        )
 
 
-def _RLClickDispatcher(event, sys, fig, ax_rlocus, plotstr, sisotool=False,
-                       bode_plot_params=None, tvect=None):
+def _RLClickDispatcher(
+    event,
+    sys,
+    fig,
+    ax_rlocus,
+    plotstr,
+    sisotool=False,
+    bode_plot_params=None,
+    tvect=None,
+):
     """Rootlocus plot click dispatcher"""
 
     # Zoom is handled by specialized callback above, only do gain plot
-    if event.inaxes == ax_rlocus.axes and \
-       plt.get_current_fig_manager().toolbar.mode not in \
-       {'zoom rect', 'pan/zoom'}:
+    if event.inaxes == ax_rlocus.axes and plt.get_current_fig_manager().toolbar.mode not in {
+        "zoom rect",
+        "pan/zoom",
+    }:
 
         # if a point is clicked on the rootlocus plot visually emphasize it
         K = _RLFeedbackClicksPoint(event, sys, fig, ax_rlocus, sisotool)
@@ -576,35 +626,42 @@ def _RLClickDispatcher(event, sys, fig, ax_rlocus, plotstr, sisotool=False,
 
 def _RLFeedbackClicksPoint(event, sys, fig, ax_rlocus, sisotool=False):
     """Display root-locus gain feedback point for clicks on root-locus plot"""
-    sys_loop = sys if sys.issiso() else sys[0,0]
+    sys_loop = sys if sys.issiso() else sys[0, 0]
 
     (nump, denp) = _systopoly1d(sys_loop)
 
     xlim = ax_rlocus.get_xlim()
     ylim = ax_rlocus.get_ylim()
-    x_tolerance = 0.1 * abs((xlim[1] - xlim[0]))
-    y_tolerance = 0.1 * abs((ylim[1] - ylim[0]))
-    gain_tolerance = np.mean([x_tolerance, y_tolerance])*0.1
+    x_tolerance = 0.1 * abs(xlim[1] - xlim[0])
+    y_tolerance = 0.1 * abs(ylim[1] - ylim[0])
+    gain_tolerance = np.mean([x_tolerance, y_tolerance]) * 0.1
 
     # Catch type error when event click is in the figure but not in an axis
     try:
         s = complex(event.xdata, event.ydata)
-        K = -1. / sys_loop(s)
-        K_xlim = -1. / sys_loop(
-            complex(event.xdata + 0.05 * abs(xlim[1] - xlim[0]), event.ydata))
-        K_ylim = -1. / sys_loop(
-            complex(event.xdata, event.ydata + 0.05 * abs(ylim[1] - ylim[0])))
+        K = -1.0 / sys_loop(s)
+        K_xlim = -1.0 / sys_loop(
+            complex(event.xdata + 0.05 * abs(xlim[1] - xlim[0]), event.ydata)
+        )
+        K_ylim = -1.0 / sys_loop(
+            complex(event.xdata, event.ydata + 0.05 * abs(ylim[1] - ylim[0]))
+        )
 
     except TypeError:
-        K = float('inf')
-        K_xlim = float('inf')
-        K_ylim = float('inf')
+        K = float("inf")
+        K_xlim = float("inf")
+        K_ylim = float("inf")
 
-    gain_tolerance += 0.1 * max([abs(K_ylim.imag/K_ylim.real),
-                                 abs(K_xlim.imag/K_xlim.real)])
+    gain_tolerance += 0.1 * max(
+        [abs(K_ylim.imag / K_ylim.real), abs(K_xlim.imag / K_xlim.real)]
+    )
 
-    if abs(K.real) > 1e-8 and abs(K.imag / K.real) < gain_tolerance and \
-       event.inaxes == ax_rlocus.axes and K.real > 0.:
+    if (
+        abs(K.real) > 1e-8
+        and abs(K.imag / K.real) < gain_tolerance
+        and event.inaxes == ax_rlocus.axes
+        and K.real > 0.0
+    ):
 
         if isdtime(sys, strict=True):
             zeta = -np.cos(np.angle(np.log(s)))
@@ -612,15 +669,18 @@ def _RLFeedbackClicksPoint(event, sys, fig, ax_rlocus, sisotool=False):
             zeta = -1 * s.real / abs(s)
 
         # Display the parameters in the output window and figure
-        print("Clicked at %10.4g%+10.4gj gain %10.4g damp %10.4g" %
-              (s.real, s.imag, K.real, zeta))
+        print(
+            "Clicked at %10.4g%+10.4gj gain %10.4g damp %10.4g"
+            % (s.real, s.imag, K.real, zeta)
+        )
         fig.suptitle(
-            "Clicked at: %10.4g%+10.4gj  gain: %10.4g  damp: %10.4g" %
-            (s.real, s.imag, K.real, zeta),
-            fontsize=12 if int(mpl.__version__[0]) == 1 else 10)
+            "Clicked at: %10.4g%+10.4gj  gain: %10.4g  damp: %10.4g"
+            % (s.real, s.imag, K.real, zeta),
+            fontsize=12 if int(mpl.__version__[0]) == 1 else 10,
+        )
 
         # Remove the previous line
-        _removeLine(label='gain_point', ax=ax_rlocus)
+        _removeLine(label="gain_point", ax=ax_rlocus)
 
         # Visualise clicked point, display all roots for sisotool mode
         if sisotool:
@@ -628,10 +688,22 @@ def _RLFeedbackClicksPoint(event, sys, fig, ax_rlocus, sisotool=False):
             ax_rlocus.plot(
                 [root.real for root in mymat],
                 [root.imag for root in mymat],
-                'm.', marker='s', markersize=8, zorder=20, label='gain_point')
+                "m.",
+                marker="s",
+                markersize=8,
+                zorder=20,
+                label="gain_point",
+            )
         else:
-            ax_rlocus.plot(s.real, s.imag, 'k.', marker='s', markersize=8,
-                           zorder=20, label='gain_point')
+            ax_rlocus.plot(
+                s.real,
+                s.imag,
+                "k.",
+                marker="s",
+                markersize=8,
+                zorder=20,
+                label="gain_point",
+            )
 
         return K.real
 
@@ -669,32 +741,40 @@ def _sgrid_func(fig=None, zeta=None, wn=None):
     angles = []
     for z in zeta:
         if (z >= 1e-4) and (z <= 1):
-            angles.append(np.pi/2 + np.arcsin(z))
+            angles.append(np.pi / 2 + np.arcsin(z))
         else:
             zeta.remove(z)
     y_over_x = np.tan(angles)
 
     # zeta-constant lines
     for index, yp in enumerate(y_over_x):
-        ax.plot([0, xlocator()[0]], [0, yp * xlocator()[0]], color='gray',
-                linestyle='dashed', linewidth=0.5)
-        ax.plot([0, xlocator()[0]], [0, -yp * xlocator()[0]], color='gray',
-                linestyle='dashed', linewidth=0.5)
+        ax.plot(
+            [0, xlocator()[0]],
+            [0, yp * xlocator()[0]],
+            color="gray",
+            linestyle="dashed",
+            linewidth=0.5,
+        )
+        ax.plot(
+            [0, xlocator()[0]],
+            [0, -yp * xlocator()[0]],
+            color="gray",
+            linestyle="dashed",
+            linewidth=0.5,
+        )
         an = "%.2f" % zeta[index]
         if yp < 0:
-            xtext_pos = 1/yp * ylim[1]
+            xtext_pos = 1 / yp * ylim[1]
             ytext_pos = yp * xtext_pos_lim
             if np.abs(xtext_pos) > np.abs(xtext_pos_lim):
                 xtext_pos = xtext_pos_lim
             else:
                 ytext_pos = ytext_pos_lim
-            ax.annotate(an, textcoords='data', xy=[xtext_pos, ytext_pos],
-                        fontsize=8)
-    ax.plot([0, 0], [ylim[0], ylim[1]],
-            color='gray', linestyle='dashed', linewidth=0.5)
+            ax.annotate(an, textcoords="data", xy=[xtext_pos, ytext_pos], fontsize=8)
+    ax.plot([0, 0], [ylim[0], ylim[1]], color="gray", linestyle="dashed", linewidth=0.5)
 
     # omega-constant lines
-    angles = np.linspace(-90, 90, 20) * np.pi/180
+    angles = np.linspace(-90, 90, 20) * np.pi / 180
     if wn is None:
         wn = _default_wn(xlocator(), ylocator())
 
@@ -705,13 +785,13 @@ def _sgrid_func(fig=None, zeta=None, wn=None):
             xp = -np.cos(angles) * np.abs(om)
 
             # Plot the natural frequency contours
-            ax.plot(xp, yp, color='gray', linestyle='dashed', linewidth=0.5)
+            ax.plot(xp, yp, color="gray", linestyle="dashed", linewidth=0.5)
 
             # Annotate the natural frequencies by listing on x-axis
             # Note: need to filter values for proper plotting in Jupyter
-            if (om > xlim[0]):
+            if om > xlim[0]:
                 an = "%.2f" % -om
-                ax.annotate(an, textcoords='data', xy=[om, 0], fontsize=8)
+                ax.annotate(an, textcoords="data", xy=[om, 0], fontsize=8)
 
 
 def _default_zetas(xlim, ylim):
@@ -737,15 +817,15 @@ def _default_zetas(xlim, ylim):
     """
     # Damping coefficient lines that intersect the x-axis
     sep1 = -xlim[0] / 4
-    ang1 = [np.arctan((sep1*i)/ylim[1]) for i in np.arange(1, 4, 1)]
+    ang1 = [np.arctan((sep1 * i) / ylim[1]) for i in np.arange(1, 4, 1)]
 
     # Damping coefficient lines that intersection the y-axis
     sep2 = ylim[1] / 3
-    ang2 = [np.arctan(-xlim[0]/(ylim[1]-sep2*i)) for i in np.arange(1, 3, 1)]
+    ang2 = [np.arctan(-xlim[0] / (ylim[1] - sep2 * i)) for i in np.arange(1, 3, 1)]
 
     # Put the lines together and add one at -pi/2 (negative real axis)
     angles = np.concatenate((ang1, ang2))
-    angles = np.insert(angles, len(angles), np.pi/2)
+    angles = np.insert(angles, len(angles), np.pi / 2)
 
     # Return the damping coefficients corresponding to these angles
     zeta = np.sin(angles)
@@ -773,18 +853,18 @@ def _default_wn(xloc, yloc, max_lines=7):
         List of default natural frequencies for the plot
 
     """
-    sep = xloc[1]-xloc[0]       # separation between x-ticks
-    
+    sep = xloc[1] - xloc[0]  # separation between x-ticks
+
     # Decide whether to use the x or y axis for determining wn
-    if yloc[-1] / sep > max_lines*10:
+    if yloc[-1] / sep > max_lines * 10:
         # y-axis scale >> x-axis scale
-        wn = yloc                   # one frequency per y-axis tick mark
+        wn = yloc  # one frequency per y-axis tick mark
     else:
-        wn = xloc                   # one frequency per x-axis tick mark
+        wn = xloc  # one frequency per x-axis tick mark
 
         # Insert additional frequencies to span the y-axis
         while np.abs(wn[0]) < yloc[-1]:
-            wn = np.insert(wn, 0, wn[0]-sep)
+            wn = np.insert(wn, 0, wn[0] - sep)
 
     # If there are too many values, cut them in half
     while len(wn) > max_lines:

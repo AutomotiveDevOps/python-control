@@ -7,7 +7,6 @@ differential flat systetms are functioning.  It doesn't do exhaustive
 testing of operations on flat systems.  Separate unit tests should be
 created for that purpose.
 """
-
 from distutils.version import StrictVersion
 
 import numpy as np
@@ -22,10 +21,8 @@ class TestFlatSys:
     """Test differential flat systems"""
 
     @pytest.mark.parametrize(
-        "xf, uf, Tf",
-        [([1, 0], [0], 2),
-         ([0, 1], [0], 3),
-         ([1, 1], [1], 4)])
+        "xf, uf, Tf", [([1, 0], [0], 2), ([0, 1], [0], 3), ([1, 1], [1], 4)]
+    )
     def test_double_integrator(self, xf, uf, Tf):
         # Define a second order integrator
         sys = ct.StateSpace([[-1, 1], [0, -2]], [[0], [1]], [[1, 0]], 0)
@@ -53,49 +50,57 @@ class TestFlatSys:
 
     def test_kinematic_car(self):
         """Differential flatness for a kinematic car"""
+
         def vehicle_flat_forward(x, u, params={}):
-            b = params.get('wheelbase', 3.)             # get parameter values
-            zflag = [np.zeros(3), np.zeros(3)]          # list for flag arrays
-            zflag[0][0] = x[0]                          # flat outputs
+            b = params.get("wheelbase", 3.0)  # get parameter values
+            zflag = [np.zeros(3), np.zeros(3)]  # list for flag arrays
+            zflag[0][0] = x[0]  # flat outputs
             zflag[1][0] = x[1]
-            zflag[0][1] = u[0] * np.cos(x[2])           # first derivatives
+            zflag[0][1] = u[0] * np.cos(x[2])  # first derivatives
             zflag[1][1] = u[0] * np.sin(x[2])
-            thdot = (u[0]/b) * np.tan(u[1])             # dtheta/dt
+            thdot = (u[0] / b) * np.tan(u[1])  # dtheta/dt
             zflag[0][2] = -u[0] * thdot * np.sin(x[2])  # second derivatives
-            zflag[1][2] =  u[0] * thdot * np.cos(x[2])
+            zflag[1][2] = u[0] * thdot * np.cos(x[2])
             return zflag
 
         def vehicle_flat_reverse(zflag, params={}):
-            b = params.get('wheelbase', 3.)             # get parameter values
-            x = np.zeros(3); u = np.zeros(2)            # vectors to store x, u
-            x[0] = zflag[0][0]                          # x position
-            x[1] = zflag[1][0]                          # y position
-            x[2] = np.arctan2(zflag[1][1], zflag[0][1]) # angle
+            b = params.get("wheelbase", 3.0)  # get parameter values
+            x = np.zeros(3)
+            u = np.zeros(2)  # vectors to store x, u
+            x[0] = zflag[0][0]  # x position
+            x[1] = zflag[1][0]  # y position
+            x[2] = np.arctan2(zflag[1][1], zflag[0][1])  # angle
             u[0] = zflag[0][1] * np.cos(x[2]) + zflag[1][1] * np.sin(x[2])
             thdot_v = zflag[1][2] * np.cos(x[2]) - zflag[0][2] * np.sin(x[2])
-            u[1] = np.arctan2(thdot_v, u[0]**2 / b)
+            u[1] = np.arctan2(thdot_v, u[0] ** 2 / b)
             return x, u
 
         def vehicle_update(t, x, u, params):
-            b = params.get('wheelbase', 3.)             # get parameter values
-            dx = np.array([
-                np.cos(x[2]) * u[0],
-                np.sin(x[2]) * u[0],
-                (u[0]/b) * np.tan(u[1])
-            ])
+            b = params.get("wheelbase", 3.0)  # get parameter values
+            dx = np.array(
+                [np.cos(x[2]) * u[0], np.sin(x[2]) * u[0], (u[0] / b) * np.tan(u[1])]
+            )
             return dx
 
-        def vehicle_output(t, x, u, params): return x
+        def vehicle_output(t, x, u, params):
+            return x
 
         # Create differentially flat input/output system
         vehicle_flat = fs.FlatSystem(
-            vehicle_flat_forward, vehicle_flat_reverse, vehicle_update,
-            vehicle_output, inputs=('v', 'delta'), outputs=('x', 'y', 'theta'),
-            states=('x', 'y', 'theta'))
+            vehicle_flat_forward,
+            vehicle_flat_reverse,
+            vehicle_update,
+            vehicle_output,
+            inputs=("v", "delta"),
+            outputs=("x", "y", "theta"),
+            states=("x", "y", "theta"),
+        )
 
         # Define the endpoints of the trajectory
-        x0 = [0., -2., 0.]; u0 = [10., 0.]
-        xf = [100., 2., 0.]; uf = [10., 0.]
+        x0 = [0.0, -2.0, 0.0]
+        u0 = [10.0, 0.0]
+        xf = [100.0, 2.0, 0.0]
+        uf = [10.0, 0.0]
         Tf = 10
 
         # Define a set of basis functions to use for the trajectories
@@ -117,7 +122,5 @@ class TestFlatSys:
 
         # For SciPy 1.0+, integrate equations and compare to desired
         if StrictVersion(sp.__version__) >= "1.0":
-            t, y, x = ct.input_output_response(
-                vehicle_flat, T, ud, x0, return_x=True)
+            t, y, x = ct.input_output_response(vehicle_flat, T, ud, x0, return_x=True)
             np.testing.assert_allclose(x, xd, atol=0.01, rtol=0.01)
-

@@ -37,11 +37,11 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
 # OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 # SUCH DAMAGE.
-
 import numpy as np
+
+from ..iosys import NonlinearIOSystem
 from .poly import PolyFamily
 from .systraj import SystemTrajectory
-from ..iosys import NonlinearIOSystem
 
 
 # Flat system class (for use as a base class)
@@ -73,11 +73,20 @@ class FlatSystem(NonlinearIOSystem):
     given, they are used in place of the flat coordinates.
 
     """
-    def __init__(self,
-                 forward, reverse,              # flat system
-                 updfcn=None, outfcn=None,      # I/O system
-                 inputs=None, outputs=None,
-                 states=None, params={}, dt=None, name=None):
+
+    def __init__(
+        self,
+        forward,
+        reverse,  # flat system
+        updfcn=None,
+        outfcn=None,  # I/O system
+        inputs=None,
+        outputs=None,
+        states=None,
+        params={},
+        dt=None,
+        name=None,
+    ):
         """Create a differentially flat input/output system.
 
         The FlatIOSystem constructor is used to create an input/output system
@@ -138,17 +147,29 @@ class FlatSystem(NonlinearIOSystem):
 
         """
         # TODO: specify default update and output functions
-        if updfcn is None: updfcn = self._flat_updfcn
-        if outfcn is None: outfcn = self._flat_outfcn
+        if updfcn is None:
+            updfcn = self._flat_updfcn
+        if outfcn is None:
+            outfcn = self._flat_outfcn
 
         # Initialize as an input/output system
         NonlinearIOSystem.__init__(
-            self, updfcn, outfcn, inputs=inputs, outputs=outputs,
-            states=states, params=params, dt=dt, name=name)
+            self,
+            updfcn,
+            outfcn,
+            inputs=inputs,
+            outputs=outputs,
+            states=states,
+            params=params,
+            dt=dt,
+            name=name,
+        )
 
         # Save the functions to compute forward and reverse conversions
-        if forward is not None: self.forward = forward
-        if reverse is not None: self.reverse = reverse
+        if forward is not None:
+            self.forward = forward
+        if reverse is not None:
+            self.reverse = reverse
 
     def forward(self, x, u, params={}):
         """Compute the flat flag given the states and input.
@@ -259,20 +280,25 @@ def point_to_point(sys, x0, u0, xf, uf, Tf, T0=0, basis=None, cost=None):
     #
     # TODO: put in tests for flat system input
     # TODO: process initial and final conditions to allow x0 or (x0, u0)
-    if x0 is None: x0 = np.zeros(sys.nstates)
-    if u0 is None: u0 = np.zeros(sys.ninputs)
-    if xf is None: xf = np.zeros(sys.nstates)
-    if uf is None: uf = np.zeros(sys.ninputs)
+    if x0 is None:
+        x0 = np.zeros(sys.nstates)
+    if u0 is None:
+        u0 = np.zeros(sys.ninputs)
+    if xf is None:
+        xf = np.zeros(sys.nstates)
+    if uf is None:
+        uf = np.zeros(sys.ninputs)
 
     #
     # Determine the basis function set to use and make sure it is big enough
     #
 
     # If no basis set was specified, use a polynomial basis (poor choice...)
-    if (basis is None): basis = PolyFamily(2*sys.nstates, Tf)
+    if basis is None:
+        basis = PolyFamily(2 * sys.nstates, Tf)
 
     # Make sure we have enough basis functions to solve the problem
-    if (basis.N * sys.ninputs < 2 * (sys.nstates + sys.ninputs)):
+    if basis.N * sys.ninputs < 2 * (sys.nstates + sys.ninputs):
         raise ValueError("basis set is too small")
 
     #
@@ -308,8 +334,7 @@ def point_to_point(sys, x0, u0, xf, uf, Tf, T0=0, basis=None, cost=None):
         for j in range(basis.N):
             for k in range(flag_len):
                 M[flag_off + k, coeff_off + j] = basis.eval_deriv(j, k, T0)
-                M[flag_tot + flag_off + k, coeff_off + j] = \
-                    basis.eval_deriv(j, k, Tf)
+                M[flag_tot + flag_off + k, coeff_off + j] = basis.eval_deriv(j, k, Tf)
         flag_off += flag_len
         coeff_off += basis.N
 
@@ -348,7 +373,7 @@ def point_to_point(sys, x0, u0, xf, uf, Tf, T0=0, basis=None, cost=None):
     coeff_off = 0
     for i in range(sys.ninputs):
         # Grab the coefficients corresponding to this flat output
-        systraj.coeffs.append(alpha[coeff_off:coeff_off + basis.N])
+        systraj.coeffs.append(alpha[coeff_off : coeff_off + basis.N])
         coeff_off += basis.N
 
         # Keep track of the length of the flat flag for this output

@@ -6,19 +6,24 @@
 # Eventually it will be possible to read and write configuration
 # files.  For now, you can just choose between MATLAB and FBS default
 # values + tweak a few other things.
-
 import warnings
 
-__all__ = ['defaults', 'set_defaults', 'reset_defaults',
-           'use_matlab_defaults', 'use_fbs_defaults',
-           'use_legacy_defaults', 'use_numpy_matrix']
+__all__ = [
+    "defaults",
+    "set_defaults",
+    "reset_defaults",
+    "use_matlab_defaults",
+    "use_fbs_defaults",
+    "use_legacy_defaults",
+    "use_numpy_matrix",
+]
 
 # Package level default values
 _control_defaults = {
-    'control.default_dt': 0,
-    'control.squeeze_frequency_response': None,
-    'control.squeeze_time_response': None,
-    'forced_response.return_x': False,
+    "control.default_dt": 0,
+    "control.squeeze_frequency_response": None,
+    "control.squeeze_time_response": None,
+    "forced_response.return_x": False,
 }
 defaults = dict(_control_defaults)
 
@@ -35,7 +40,7 @@ def set_defaults(module, **keywords):
     if not isinstance(module, str):
         raise ValueError("module must be a string")
     for key, val in keywords.items():
-        defaults[module + '.' + key] = val
+        defaults[module + "." + key] = val
 
 
 def reset_defaults():
@@ -44,25 +49,32 @@ def reset_defaults():
     defaults.update(_control_defaults)
 
     from .freqplot import _bode_defaults, _freqplot_defaults
+
     defaults.update(_bode_defaults)
     defaults.update(_freqplot_defaults)
 
     from .nichols import _nichols_defaults
+
     defaults.update(_nichols_defaults)
 
     from .pzmap import _pzmap_defaults
+
     defaults.update(_pzmap_defaults)
 
     from .rlocus import _rlocus_defaults
+
     defaults.update(_rlocus_defaults)
 
     from .xferfcn import _xferfcn_defaults
+
     defaults.update(_xferfcn_defaults)
 
     from .statesp import _statesp_defaults
+
     defaults.update(_statesp_defaults)
 
     from .iosys import _iosys_defaults
+
     defaults.update(_iosys_defaults)
 
 
@@ -103,7 +115,7 @@ def _get_param(module, param, argval=None, defval=None, pop=False):
         raise ValueError("module and param must be strings")
 
     # Construction the name of the key, for later use
-    key = module + '.' + param
+    key = module + "." + param
 
     # If we were passed a dict for the argval, get the param value from there
     if isinstance(argval, dict):
@@ -127,8 +139,8 @@ def use_matlab_defaults():
         * State space class and functions use Numpy matrix objects
 
     """
-    set_defaults('bode', dB=True, deg=True, Hz=False, grid=True)
-    set_defaults('statesp', use_numpy_matrix=True)
+    set_defaults("bode", dB=True, deg=True, Hz=False, grid=True)
+    set_defaults("statesp", use_numpy_matrix=True)
 
 
 # Set defaults to match FBS (Astrom and Murray)
@@ -140,7 +152,7 @@ def use_fbs_defaults():
           frequency in rad/sec, no grid
 
     """
-    set_defaults('bode', dB=False, deg=True, Hz=False, grid=False)
+    set_defaults("bode", dB=False, deg=True, Hz=False, grid=False)
 
 
 # Decide whether to use numpy.matrix for state space operations
@@ -167,12 +179,16 @@ def use_numpy_matrix(flag=True, warn=True):
     space operations is a 2D array.
     """
     if flag and warn:
-        warnings.warn("Return type numpy.matrix is deprecated.",
-                      stacklevel=2, category=DeprecationWarning)
-    set_defaults('statesp', use_numpy_matrix=flag)
+        warnings.warn(
+            "Return type numpy.matrix is deprecated.",
+            stacklevel=2,
+            category=DeprecationWarning,
+        )
+    set_defaults("statesp", use_numpy_matrix=flag)
+
 
 def use_legacy_defaults(version):
-    """ Sets the defaults to whatever they were in a given release.
+    """Sets the defaults to whatever they were in a given release.
 
     Parameters
     ----------
@@ -180,31 +196,45 @@ def use_legacy_defaults(version):
         Version number of the defaults desired. Ranges from '0.1' to '0.8.4'.
     """
     import re
+
     (major, minor, patch) = (None, None, None)  # default values
 
     # Early release tag format: REL-0.N
     match = re.match("REL-0.([12])", version)
-    if match: (major, minor, patch) = (0, int(match.group(1)), 0)
+    if match:
+        (major, minor, patch) = (0, int(match.group(1)), 0)
 
     # Early release tag format: control-0.Np
     match = re.match("control-0.([3-6])([a-d])", version)
-    if match: (major, minor, patch) = \
-       (0, int(match.group(1)), ord(match.group(2)) - ord('a') + 1)
+    if match:
+        (major, minor, patch) = (
+            0,
+            int(match.group(1)),
+            ord(match.group(2)) - ord("a") + 1,
+        )
 
     # Early release tag format: v0.Np
     match = re.match("[vV]?0.([3-6])([a-d])", version)
-    if match: (major, minor, patch) = \
-       (0, int(match.group(1)), ord(match.group(2)) - ord('a') + 1)
+    if match:
+        (major, minor, patch) = (
+            0,
+            int(match.group(1)),
+            ord(match.group(2)) - ord("a") + 1,
+        )
 
     # Abbreviated version format: vM.N or M.N
     match = re.match("([vV]?[0-9]).([0-9])", version)
-    if match: (major, minor, patch) = \
-       (int(match.group(1)), int(match.group(2)), 0)
+    if match:
+        (major, minor, patch) = (int(match.group(1)), int(match.group(2)), 0)
 
     # Standard version format: vM.N.P or M.N.P
     match = re.match("[vV]?([0-9]).([0-9]).([0-9])", version)
-    if match: (major, minor, patch) = \
-        (int(match.group(1)), int(match.group(2)), int(match.group(3)))
+    if match:
+        (major, minor, patch) = (
+            int(match.group(1)),
+            int(match.group(2)),
+            int(match.group(3)),
+        )
 
     # Make sure we found match
     if major is None or minor is None:
@@ -213,30 +243,33 @@ def use_legacy_defaults(version):
     #
     # Go backwards through releases and reset defaults
     #
-    reset_defaults()            # start from a clean slate
+    reset_defaults()  # start from a clean slate
 
     # Version 0.9.0:
     if major == 0 and minor < 9:
         # switched to 'array' as default for state space objects
-        set_defaults('statesp', use_numpy_matrix=True)
+        set_defaults("statesp", use_numpy_matrix=True)
 
         # switched to 0 (=continuous) as default timestep
-        set_defaults('control', default_dt=None)
+        set_defaults("control", default_dt=None)
 
         # changed iosys naming conventions
-        set_defaults('iosys', state_name_delim='.',
-                     duplicate_system_name_prefix='copy of ',
-                     duplicate_system_name_suffix='',
-                     linearized_system_name_prefix='',
-                     linearized_system_name_suffix='_linearized')
+        set_defaults(
+            "iosys",
+            state_name_delim=".",
+            duplicate_system_name_prefix="copy of ",
+            duplicate_system_name_suffix="",
+            linearized_system_name_prefix="",
+            linearized_system_name_suffix="_linearized",
+        )
 
         # turned off _remove_useless_states
-        set_defaults('statesp', remove_useless_states=True)
+        set_defaults("statesp", remove_useless_states=True)
 
         # forced_response no longer returns x by default
-        set_defaults('forced_response', return_x=True)
+        set_defaults("forced_response", return_x=True)
 
         # time responses are only squeezed if SISO
-        set_defaults('control', squeeze_time_response=True)
+        set_defaults("control", squeeze_time_response=True)
 
     return (major, minor, patch)

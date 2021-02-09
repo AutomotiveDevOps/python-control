@@ -34,26 +34,36 @@
 #
 # Author: M.M. (Rene) van Paassen (using xferfcn.py as basis)
 # Date: 02 Oct 12
-
-from __future__ import division
-
 """
 Frequency response data representation and functions.
 
 This module contains the FRD class and also functions that operate on
 FRD data.
 """
-
 # External function declarations
 from warnings import warn
-import numpy as np
-from numpy import angle, array, empty, ones, \
-    real, imag, absolute, eye, linalg, where, dot, sort
-from scipy.interpolate import splprep, splev
-from .lti import LTI, _process_frequency_response
-from . import config
 
-__all__ = ['FrequencyResponseData', 'FRD', 'frd']
+import numpy as np
+from numpy import absolute
+from numpy import angle
+from numpy import array
+from numpy import dot
+from numpy import empty
+from numpy import eye
+from numpy import imag
+from numpy import linalg
+from numpy import ones
+from numpy import real
+from numpy import sort
+from numpy import where
+from scipy.interpolate import splev
+from scipy.interpolate import splprep
+
+from . import config
+from .lti import _process_frequency_response
+from .lti import LTI
+
+__all__ = ["FrequencyResponseData", "FRD", "frd"]
 
 
 class FrequencyResponseData(LTI):
@@ -81,7 +91,7 @@ class FrequencyResponseData(LTI):
 
     # Allow NDarray * StateSpace to give StateSpace._rmul_() priority
     # https://docs.scipy.org/doc/numpy/reference/arrays.classes.html
-    __array_priority__ = 11     # override ndarray and matrix types
+    __array_priority__ = 11  # override ndarray and matrix types
 
     epsw = 1e-8
 
@@ -102,7 +112,7 @@ class FrequencyResponseData(LTI):
 
         """
         # TODO: discrete-time FRD systems?
-        smooth = kwargs.get('smooth', False)
+        smooth = kwargs.get("smooth", False)
 
         if len(args) == 2:
             if not isinstance(args[0], FRD) and isinstance(args[0], LTI):
@@ -119,20 +129,25 @@ class FrequencyResponseData(LTI):
                 if len(self.fresp.shape) == 1:
                     self.fresp = self.fresp.reshape(1, 1, len(args[0]))
                 self.omega = array(args[1], dtype=float)
-                if len(self.fresp.shape) != 3 or \
-                        self.fresp.shape[-1] != self.omega.shape[-1] or \
-                        len(self.omega.shape) != 1:
+                if (
+                    len(self.fresp.shape) != 3
+                    or self.fresp.shape[-1] != self.omega.shape[-1]
+                    or len(self.omega.shape) != 1
+                ):
                     raise TypeError(
                         "The frequency data constructor needs a 1-d or 3-d"
                         " response data array and a matching frequency vector"
-                        " size")
+                        " size"
+                    )
 
         elif len(args) == 1:
             # Use the copy constructor.
             if not isinstance(args[0], FRD):
                 raise TypeError(
                     "The one-argument constructor can only take in"
-                    " an FRD object.  Received %s." % type(args[0]))
+                    " an FRD object.  Received %s."
+                    % type(args[0])
+                )
             self.omega = args[0].omega
             self.fresp = args[0].fresp
         else:
@@ -140,14 +155,15 @@ class FrequencyResponseData(LTI):
 
         # create interpolation functions
         if smooth:
-            self.ifunc = empty((self.fresp.shape[0], self.fresp.shape[1]),
-                               dtype=tuple)
+            self.ifunc = empty((self.fresp.shape[0], self.fresp.shape[1]), dtype=tuple)
             for i in range(self.fresp.shape[0]):
                 for j in range(self.fresp.shape[1]):
                     self.ifunc[i, j], u = splprep(
-                        u=self.omega, x=[real(self.fresp[i, j, :]),
-                                         imag(self.fresp[i, j, :])],
-                        w=1.0/(absolute(self.fresp[i, j, :]) + 0.001), s=0.0)
+                        u=self.omega,
+                        x=[real(self.fresp[i, j, :]), imag(self.fresp[i, j, :])],
+                        w=1.0 / (absolute(self.fresp[i, j, :]) + 0.001),
+                        s=0.0,
+                    )
         else:
             self.ifunc = None
         LTI.__init__(self, self.fresp.shape[1], self.fresp.shape[0])
@@ -156,21 +172,26 @@ class FrequencyResponseData(LTI):
         """String representation of the transfer function."""
 
         mimo = self.ninputs > 1 or self.noutputs > 1
-        outstr = ['Frequency response data']
+        outstr = ["Frequency response data"]
 
         for i in range(self.ninputs):
             for j in range(self.noutputs):
                 if mimo:
                     outstr.append("Input %i to output %i:" % (i + 1, j + 1))
-                outstr.append('Freq [rad/s]  Response')
-                outstr.append('------------  ---------------------')
+                outstr.append("Freq [rad/s]  Response")
+                outstr.append("------------  ---------------------")
                 outstr.extend(
-                    ['%12.3f  %10.4g%+10.4gj' % (w, re, im)
-                     for w, re, im in zip(self.omega,
-                                          real(self.fresp[j, i, :]),
-                                          imag(self.fresp[j, i, :]))])
+                    [
+                        f"{w:12.3f}  {re:10.4g}{im:+10.4g}j"
+                        for w, re, im in zip(
+                            self.omega,
+                            real(self.fresp[j, i, :]),
+                            imag(self.fresp[j, i, :]),
+                        )
+                    ]
+                )
 
-        return '\n'.join(outstr)
+        return "\n".join(outstr)
 
     def __repr__(self):
         """Loadable string representation,
@@ -178,8 +199,10 @@ class FrequencyResponseData(LTI):
         limited for number of data points.
         """
         return "FrequencyResponseData({d}, {w}{smooth})".format(
-            d=repr(self.fresp), w=repr(self.omega),
-            smooth=(self.ifunc and ", smooth=True") or "")
+            d=repr(self.fresp),
+            w=repr(self.omega),
+            smooth=(self.ifunc and ", smooth=True") or "",
+        )
 
     def __neg__(self):
         """Negate a transfer function."""
@@ -191,10 +214,11 @@ class FrequencyResponseData(LTI):
 
         if isinstance(other, FRD):
             # verify that the frequencies match
-            if len(other.omega) != len(self.omega) or \
-               (other.omega != self.omega).any():
-                warn("Frequency points do not match; expect "
-                     "truncation and interpolation.")
+            if len(other.omega) != len(self.omega) or (other.omega != self.omega).any():
+                warn(
+                    "Frequency points do not match; expect "
+                    "truncation and interpolation."
+                )
 
         # Convert the second argument to a frequency response function.
         # or re-base the frd to the current omega (if needed)
@@ -202,11 +226,15 @@ class FrequencyResponseData(LTI):
 
         # Check that the input-output sizes are consistent.
         if self.ninputs != other.ninputs:
-            raise ValueError("The first summand has %i input(s), but the \
-second has %i." % (self.ninputs, other.ninputs))
+            raise ValueError(
+                "The first summand has %i input(s), but the second has %i."
+                % (self.ninputs, other.ninputs)
+            )
         if self.noutputs != other.noutputs:
-            raise ValueError("The first summand has %i output(s), but the \
-second has %i." % (self.noutputs, other.noutputs))
+            raise ValueError(
+                "The first summand has %i output(s), but the second has %i."
+                % (self.noutputs, other.noutputs)
+            )
 
         return FRD(self.fresp + other.fresp, other.omega)
 
@@ -230,8 +258,7 @@ second has %i." % (self.noutputs, other.noutputs))
 
         # Convert the second argument to a transfer function.
         if isinstance(other, (int, float, complex, np.number)):
-            return FRD(self.fresp * other, self.omega,
-                       smooth=(self.ifunc is not None))
+            return FRD(self.fresp * other, self.omega, smooth=(self.ifunc is not None))
         else:
             other = _convert_to_FRD(other, omega=self.omega)
 
@@ -239,26 +266,27 @@ second has %i." % (self.noutputs, other.noutputs))
         if self.ninputs != other.noutputs:
             raise ValueError(
                 "H = G1*G2: input-output size mismatch: "
-                "G1 has %i input(s), G2 has %i output(s)." %
-                (self.ninputs, other.noutputs))
+                "G1 has %i input(s), G2 has %i output(s)."
+                % (self.ninputs, other.noutputs)
+            )
 
         inputs = other.ninputs
         outputs = self.noutputs
-        fresp = empty((outputs, inputs, len(self.omega)),
-                      dtype=self.fresp.dtype)
+        fresp = empty((outputs, inputs, len(self.omega)), dtype=self.fresp.dtype)
         for i in range(len(self.omega)):
             fresp[:, :, i] = dot(self.fresp[:, :, i], other.fresp[:, :, i])
-        return FRD(fresp, self.omega,
-                   smooth=(self.ifunc is not None) and
-                          (other.ifunc is not None))
+        return FRD(
+            fresp,
+            self.omega,
+            smooth=(self.ifunc is not None) and (other.ifunc is not None),
+        )
 
     def __rmul__(self, other):
         """Right Multiply two LTI objects (serial connection)."""
 
         # Convert the second argument to an frd function.
         if isinstance(other, (int, float, complex, np.number)):
-            return FRD(self.fresp * other, self.omega,
-                       smooth=(self.ifunc is not None))
+            return FRD(self.fresp * other, self.omega, smooth=(self.ifunc is not None))
         else:
             other = _convert_to_FRD(other, omega=self.omega)
 
@@ -266,39 +294,48 @@ second has %i." % (self.noutputs, other.noutputs))
         if self.noutputs != other.ninputs:
             raise ValueError(
                 "H = G1*G2: input-output size mismatch: "
-                "G1 has %i input(s), G2 has %i output(s)." %
-                (other.ninputs, self.noutputs))
+                "G1 has %i input(s), G2 has %i output(s)."
+                % (other.ninputs, self.noutputs)
+            )
 
         inputs = self.ninputs
         outputs = other.noutputs
 
-        fresp = empty((outputs, inputs, len(self.omega)),
-                      dtype=self.fresp.dtype)
+        fresp = empty((outputs, inputs, len(self.omega)), dtype=self.fresp.dtype)
         for i in range(len(self.omega)):
             fresp[:, :, i] = dot(other.fresp[:, :, i], self.fresp[:, :, i])
-        return FRD(fresp, self.omega,
-                   smooth=(self.ifunc is not None) and
-                          (other.ifunc is not None))
+        return FRD(
+            fresp,
+            self.omega,
+            smooth=(self.ifunc is not None) and (other.ifunc is not None),
+        )
 
     # TODO: Division of MIMO transfer function objects is not written yet.
     def __truediv__(self, other):
         """Divide two LTI objects."""
 
         if isinstance(other, (int, float, complex, np.number)):
-            return FRD(self.fresp * (1/other), self.omega,
-                       smooth=(self.ifunc is not None))
+            return FRD(
+                self.fresp * (1 / other), self.omega, smooth=(self.ifunc is not None)
+            )
         else:
             other = _convert_to_FRD(other, omega=self.omega)
 
-        if (self.ninputs > 1 or self.noutputs > 1 or
-            other.ninputs > 1 or other.noutputs > 1):
+        if (
+            self.ninputs > 1
+            or self.noutputs > 1
+            or other.ninputs > 1
+            or other.noutputs > 1
+        ):
             raise NotImplementedError(
-                "FRD.__truediv__ is currently only implemented for SISO "
-                "systems.")
+                "FRD.__truediv__ is currently only implemented for SISO systems."
+            )
 
-        return FRD(self.fresp/other.fresp, self.omega,
-                   smooth=(self.ifunc is not None) and
-                          (other.ifunc is not None))
+        return FRD(
+            self.fresp / other.fresp,
+            self.omega,
+            smooth=(self.ifunc is not None) and (other.ifunc is not None),
+        )
 
     # TODO: Remove when transition to python3 complete
     def __div__(self, other):
@@ -308,16 +345,19 @@ second has %i." % (self.noutputs, other.noutputs))
     def __rtruediv__(self, other):
         """Right divide two LTI objects."""
         if isinstance(other, (int, float, complex, np.number)):
-            return FRD(other / self.fresp, self.omega,
-                       smooth=(self.ifunc is not None))
+            return FRD(other / self.fresp, self.omega, smooth=(self.ifunc is not None))
         else:
             other = _convert_to_FRD(other, omega=self.omega)
 
-        if (self.ninputs > 1 or self.noutputs > 1 or
-            other.ninputs > 1 or other.noutputs > 1):
+        if (
+            self.ninputs > 1
+            or self.noutputs > 1
+            or other.ninputs > 1
+            or other.noutputs > 1
+        ):
             raise NotImplementedError(
-                "FRD.__rtruediv__ is currently only implemented for "
-                "SISO systems.")
+                "FRD.__rtruediv__ is currently only implemented for SISO systems."
+            )
 
         return other / self
 
@@ -329,13 +369,15 @@ second has %i." % (self.noutputs, other.noutputs))
         if not type(other) == int:
             raise ValueError("Exponent must be an integer")
         if other == 0:
-            return FRD(ones(self.fresp.shape), self.omega,
-                       smooth=(self.ifunc is not None))  # unity
+            return FRD(
+                ones(self.fresp.shape), self.omega, smooth=(self.ifunc is not None)
+            )  # unity
         if other > 0:
-            return self * (self**(other-1))
+            return self * (self ** (other - 1))
         if other < 0:
-            return (FRD(ones(self.fresp.shape), self.omega) / self) * \
-                (self**(other+1))
+            return (FRD(ones(self.fresp.shape), self.omega) / self) * (
+                self ** (other + 1)
+            )
 
     # Define the `eval` function to evaluate an FRD at a given (real)
     # frequency.  Note that we choose to use `eval` instead of `evalfr` to
@@ -373,7 +415,7 @@ second has %i." % (self.noutputs, other.noutputs))
             then single-dimensional axes are removed.
 
         """
-        omega_array = np.array(omega, ndmin=1) # array-like version of omega
+        omega_array = np.array(omega, ndmin=1)  # array-like version of omega
 
         # Make sure that we are operating on a simple list
         if len(omega_array.shape) > 1:
@@ -384,16 +426,16 @@ second has %i." % (self.noutputs, other.noutputs))
             raise ValueError("FRD.eval can only accept real-valued omega")
 
         if self.ifunc is None:
-            elements = np.isin(self.omega, omega) # binary array
+            elements = np.isin(self.omega, omega)  # binary array
             if sum(elements) < len(omega_array):
                 raise ValueError(
                     "not all frequencies omega are in frequency list of FRD "
-                    "system. Try an interpolating FRD for additional points.")
+                    "system. Try an interpolating FRD for additional points."
+                )
             else:
                 out = self.fresp[:, :, elements]
         else:
-            out = empty((self.noutputs, self.ninputs, len(omega_array)),
-                         dtype=complex)
+            out = empty((self.noutputs, self.ninputs, len(omega_array)), dtype=complex)
             for i in range(self.noutputs):
                 for j in range(self.ninputs):
                     for k, w in enumerate(omega_array):
@@ -445,11 +487,12 @@ second has %i." % (self.noutputs, other.noutputs))
             raise ValueError("input list must be 1D")
 
         if any(abs(np.atleast_1d(s).real) > 0):
-            raise ValueError("__call__: FRD systems can only accept "
-                            "purely imaginary frequencies")
+            raise ValueError(
+                "__call__: FRD systems can only accept purely imaginary frequencies"
+            )
 
         # need to preserve array or scalar status
-        if hasattr(s, '__len__'):
+        if hasattr(s, "__len__"):
             return self.eval(np.asarray(s).imag, squeeze=squeeze)
         else:
             return self.eval(complex(s).imag, squeeze=squeeze)
@@ -462,11 +505,14 @@ second has %i." % (self.noutputs, other.noutputs))
             :meth:`FrequencyResponseData.frequency_response`. Or use
             :func:`freqresp` in the MATLAB compatibility module.
         """
-        warn("FrequencyResponseData.freqresp(omega) will be removed in a "
-             "future release of python-control; use "
-             "FrequencyResponseData.frequency_response(omega), or "
-             "freqresp(sys, omega) in the MATLAB compatibility module "
-             "instead", DeprecationWarning)
+        warn(
+            "FrequencyResponseData.freqresp(omega) will be removed in a "
+            "future release of python-control; use "
+            "FrequencyResponseData.frequency_response(omega), or "
+            "freqresp(sys, omega) in the MATLAB compatibility module "
+            "instead",
+            DeprecationWarning,
+        )
         return self.frequency_response(omega)
 
     def feedback(self, other=1, sign=-1):
@@ -474,11 +520,9 @@ second has %i." % (self.noutputs, other.noutputs))
 
         other = _convert_to_FRD(other, omega=self.omega)
 
-        if (self.noutputs != other.ninputs or self.ninputs != other.noutputs):
-            raise ValueError(
-                "FRD.feedback, inputs/outputs mismatch")
-        fresp = empty((self.noutputs, self.ninputs, len(other.omega)),
-                      dtype=complex)
+        if self.noutputs != other.ninputs or self.ninputs != other.noutputs:
+            raise ValueError("FRD.feedback, inputs/outputs mismatch")
+        fresp = empty((self.noutputs, self.ninputs, len(other.omega)), dtype=complex)
         # TODO: vectorize this
         # TODO: handle omega re-mapping
         # TODO: is there a reason to use linalg.solve instead of linalg.inv?
@@ -489,10 +533,12 @@ second has %i." % (self.noutputs, other.noutputs))
                 linalg.solve(
                     eye(self.ninputs)
                     + np.dot(other.fresp[:, :, k], self.fresp[:, :, k]),
-                    eye(self.ninputs))
+                    eye(self.ninputs),
+                ),
             )
 
         return FRD(fresp, other.omega, smooth=(self.ifunc is not None))
+
 
 #
 # Allow FRD as an alias for the FrequencyResponseData class
@@ -528,13 +574,13 @@ def _convert_to_FRD(sys, omega, inputs=1, outputs=1):
 
     if isinstance(sys, FRD):
         omega.sort()
-        if len(omega) == len(sys.omega) and \
-           (abs(omega - sys.omega) < FRD.epsw).all():
+        if len(omega) == len(sys.omega) and (abs(omega - sys.omega) < FRD.epsw).all():
             # frequencies match, and system was already frd; simply use
             return sys
 
         raise NotImplementedError(
-            "Frequency ranges of FRD do not match, conversion not implemented")
+            "Frequency ranges of FRD do not match, conversion not implemented"
+        )
 
     elif isinstance(sys, LTI):
         omega = np.sort(omega)
@@ -544,7 +590,7 @@ def _convert_to_FRD(sys, omega, inputs=1, outputs=1):
         return FRD(fresp, omega, smooth=True)
 
     elif isinstance(sys, (int, float, complex, np.number)):
-        fresp = ones((outputs, inputs, len(omega)), dtype=float)*sys
+        fresp = ones((outputs, inputs, len(omega)), dtype=float) * sys
         return FRD(fresp, omega, smooth=True)
 
     # try converting constant matrices
@@ -559,8 +605,7 @@ def _convert_to_FRD(sys, omega, inputs=1, outputs=1):
     except Exception:
         pass
 
-    raise TypeError('''Can't convert given type "%s" to FRD system.''' %
-                    sys.__class__)
+    raise TypeError("""Can't convert given type "%s" to FRD system.""" % sys.__class__)
 
 
 def frd(*args):

@@ -39,20 +39,22 @@
 # SUCH DAMAGE.
 #
 # $Id$
-
 # Python 3 compatibility
-from __future__ import print_function
+import warnings
+
+import numpy as np
+
+from .exception import ControlDimension
+from .exception import ControlMIMONotImplemented
+from .exception import ControlSlycot
+from .lti import isctime
+from .lti import isdtime
+from .statefbk import gram
+from .statesp import StateSpace
 
 # External packages and modules
-import numpy as np
-import warnings
-from .exception import ControlSlycot, ControlMIMONotImplemented, \
-    ControlDimension
-from .lti import isdtime, isctime
-from .statesp import StateSpace
-from .statefbk import gram
 
-__all__ = ['hsvd', 'balred', 'modred', 'era', 'markov', 'minreal']
+__all__ = ["hsvd", "balred", "modred", "era", "markov", "minreal"]
 
 
 # Hankel Singular Value Decomposition
@@ -91,11 +93,11 @@ def hsvd(sys):
 
     """
     # TODO: implement for discrete time systems
-    if (isdtime(sys, strict=True)):
+    if isdtime(sys, strict=True):
         raise NotImplementedError("Function not implemented in discrete time")
 
-    Wc = gram(sys, 'c')
-    Wo = gram(sys, 'o')
+    Wc = gram(sys, "c")
+    Wo = gram(sys, "o")
     WoWc = np.dot(Wo, Wc)
     w, v = np.linalg.eig(WoWc)
 
@@ -106,7 +108,7 @@ def hsvd(sys):
     return hsv[::-1]
 
 
-def modred(sys, ELIM, method='matchdc'):
+def modred(sys, ELIM, method="matchdc"):
     """
     Model reduction of `sys` by eliminating the states in `ELIM` using a given
     method.
@@ -149,8 +151,8 @@ def modred(sys, ELIM, method='matchdc'):
     #   elif isDisc():
     #       dico = 'D'
     #   else:
-    if (isctime(sys)):
-        dico = 'C'
+    if isctime(sys):
+        dico = "C"
     else:
         raise NotImplementedError("Function not implemented in discrete time")
 
@@ -179,7 +181,7 @@ def modred(sys, ELIM, method='matchdc'):
     B1 = sys.B[NELIM, :]
     B2 = sys.B[ELIM, :]
 
-    if method == 'matchdc':
+    if method == "matchdc":
         # if matchdc, residualize
 
         # Check if the matrix A22 is invertible
@@ -192,14 +194,14 @@ def modred(sys, ELIM, method='matchdc'):
         # decomposition (cubic runtime complexity) of A22 only once!
         # The remaining back substitutions are only quadratic in runtime.
         A22I_A21_B2 = np.linalg.solve(A22, np.concatenate((A21, B2), axis=1))
-        A22I_A21 = A22I_A21_B2[:, :A21.shape[1]]
-        A22I_B2 = A22I_A21_B2[:, A21.shape[1]:]
+        A22I_A21 = A22I_A21_B2[:, : A21.shape[1]]
+        A22I_B2 = A22I_A21_B2[:, A21.shape[1] :]
 
         Ar = A11 - np.dot(A12, A22I_A21)
         Br = B1 - np.dot(A12, A22I_B2)
         Cr = C1 - np.dot(C2, A22I_A21)
         Dr = sys.D - np.dot(C2, A22I_B2)
-    elif method == 'truncate':
+    elif method == "truncate":
         # if truncate, simply discard state x2
         Ar = A11
         Br = B1
@@ -212,7 +214,7 @@ def modred(sys, ELIM, method='matchdc'):
     return rsys
 
 
-def balred(sys, orders, method='truncate', alpha=None):
+def balred(sys, orders, method="truncate", alpha=None):
     """Balanced reduced order model of sys of a given order.
     States are eliminated based on Hankel singular value.
     If sys has unstable modes, they are removed, the
@@ -261,15 +263,14 @@ def balred(sys, orders, method='truncate', alpha=None):
     >>> rsys = balred(sys, orders, method='truncate')
 
     """
-    if method != 'truncate' and method != 'matchdc':
+    if method != "truncate" and method != "matchdc":
         raise ValueError("supported methods are 'truncate' or 'matchdc'")
-    elif method == 'truncate':
+    elif method == "truncate":
         try:
             from slycot import ab09md, ab09ad
         except ImportError:
-            raise ControlSlycot(
-                "can't find slycot subroutine ab09md or ab09ad")
-    elif method == 'matchdc':
+            raise ControlSlycot("can't find slycot subroutine ab09md or ab09ad")
+    elif method == "matchdc":
         try:
             from slycot import ab09nd
         except ImportError:
@@ -283,46 +284,70 @@ def balred(sys, orders, method='truncate', alpha=None):
     #   elif isDisc():
     #       dico = 'D'
     #   else:
-    dico = 'C'
+    dico = "C"
 
-    job = 'B'                   # balanced (B) or not (N)
-    equil = 'N'                 # scale (S) or not (N)
+    job = "B"  # balanced (B) or not (N)
+    equil = "N"  # scale (S) or not (N)
     if alpha is None:
-        if dico == 'C':
-            alpha = 0.
-        elif dico == 'D':
-            alpha = 1.
+        if dico == "C":
+            alpha = 0.0
+        elif dico == "D":
+            alpha = 1.0
 
-    rsys = []                   # empty list for reduced systems
+    rsys = []  # empty list for reduced systems
 
     # check if orders is a list or a scalar
     try:
         order = iter(orders)
-    except TypeError:           # if orders is a scalar
+    except TypeError:  # if orders is a scalar
         orders = [orders]
 
     for i in orders:
         n = np.size(sys.A, 0)
         m = np.size(sys.B, 1)
         p = np.size(sys.C, 0)
-        if method == 'truncate':
+        if method == "truncate":
             # check system stability
             if np.any(np.linalg.eigvals(sys.A).real >= 0.0):
                 # unstable branch
                 Nr, Ar, Br, Cr, Ns, hsv = ab09md(
-                    dico, job, equil, n, m, p, sys.A, sys.B, sys.C,
-                    alpha=alpha, nr=i, tol=0.0)
+                    dico,
+                    job,
+                    equil,
+                    n,
+                    m,
+                    p,
+                    sys.A,
+                    sys.B,
+                    sys.C,
+                    alpha=alpha,
+                    nr=i,
+                    tol=0.0,
+                )
             else:
                 # stable branch
                 Nr, Ar, Br, Cr, hsv = ab09ad(
-                    dico, job, equil, n, m, p, sys.A, sys.B, sys.C,
-                    nr=i, tol=0.0)
+                    dico, job, equil, n, m, p, sys.A, sys.B, sys.C, nr=i, tol=0.0
+                )
             rsys.append(StateSpace(Ar, Br, Cr, sys.D))
 
-        elif method == 'matchdc':
+        elif method == "matchdc":
             Nr, Ar, Br, Cr, Dr, Ns, hsv = ab09nd(
-                dico, job, equil, n, m, p, sys.A, sys.B, sys.C, sys.D,
-                alpha=alpha, nr=i, tol1=0.0, tol2=0.0)
+                dico,
+                job,
+                equil,
+                n,
+                m,
+                p,
+                sys.A,
+                sys.B,
+                sys.C,
+                sys.D,
+                alpha=alpha,
+                nr=i,
+                tol1=0.0,
+                tol2=0.0,
+            )
             rsys.append(StateSpace(Ar, Br, Cr, Dr))
 
     # if orders was a scalar, just return the single reduced model, not a list
@@ -334,7 +359,7 @@ def balred(sys, orders, method='truncate', alpha=None):
 
 
 def minreal(sys, tol=None, verbose=True):
-    '''
+    """
     Eliminates uncontrollable or unobservable states in state-space
     models or cancelling pole-zero pairs in transfer functions. The
     output sysr has minimal order and the same response
@@ -353,11 +378,14 @@ def minreal(sys, tol=None, verbose=True):
     -------
     rsys: StateSpace or TransferFunction
         Cleaned model
-    '''
+    """
     sysr = sys.minreal(tol)
     if verbose:
-        print("{nstates} states have been removed from the model".format(
-                nstates=len(sys.pole()) - len(sysr.pole())))
+        print(
+            "{nstates} states have been removed from the model".format(
+                nstates=len(sys.pole()) - len(sysr.pole())
+            )
+        )
     return sysr
 
 
@@ -392,7 +420,7 @@ def era(YY, m, n, nin, nout, r):
     >>> rsys = era(YY, m, n, nin, nout, r)
 
     """
-    raise NotImplementedError('This function is not implemented yet.')
+    raise NotImplementedError("This function is not implemented yet.")
 
 
 def markov(Y, U, m=None, transpose=False):
@@ -469,8 +497,7 @@ def markov(Y, U, m=None, transpose=False):
 
     # Make sure the number of time points match
     if Umat.shape[1] != Ymat.shape[1]:
-        raise ControlDimension(
-            "Input and output data are of differnent lengths")
+        raise ControlDimension("Input and output data are of differnent lengths")
     n = Umat.shape[1]
 
     # If number of desired parameters was not given, set to size of input data
@@ -539,7 +566,7 @@ def markov(Y, U, m=None, transpose=False):
     UU = Umat
     for i in range(1, m):
         # Shift previous column down and add a zero at the top
-        new_row = np.hstack((0, UU[i-1, 0:-1]))
+        new_row = np.hstack((0, UU[i - 1, 0:-1]))
         UU = np.vstack((UU, new_row))
     UU = np.transpose(UU)
 

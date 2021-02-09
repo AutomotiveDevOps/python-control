@@ -34,16 +34,15 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
 # OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 # SUCH DAMAGE.
-
 import numpy as np
+
 import control
-from .flatsys import FlatSystem
 from ..iosys import LinearIOSystem
+from .flatsys import FlatSystem
 
 
 class LinearFlatSystem(FlatSystem, LinearIOSystem):
-    def __init__(self, linsys, inputs=None, outputs=None, states=None,
-                 name=None):
+    def __init__(self, linsys, inputs=None, outputs=None, states=None, name=None):
         """Define a flat system from a SISO LTI system.
 
         Given a reachable, single-input/single-output, linear time-invariant
@@ -84,29 +83,32 @@ class LinearFlatSystem(FlatSystem, LinearIOSystem):
 
         """
         # Make sure we can handle the system
-        if (not control.isctime(linsys)):
+        if not control.isctime(linsys):
             raise control.ControlNotImplemented(
-                "requires continuous time, linear control system")
-        elif (not control.issiso(linsys)):
+                "requires continuous time, linear control system"
+            )
+        elif not control.issiso(linsys):
             raise control.ControlNotImplemented(
-                "only single input, single output systems are supported")
+                "only single input, single output systems are supported"
+            )
 
         # Initialize the object as a LinearIO system
         LinearIOSystem.__init__(
-            self, linsys, inputs=inputs, outputs=outputs, states=states,
-            name=name)
+            self, linsys, inputs=inputs, outputs=outputs, states=states, name=name
+        )
 
         # Find the transformation to chain of integrators form
         zsys, Tr = control.reachable_form(linsys)
-        Tr = Tr[::-1, ::]               # flip rows
+        Tr = Tr[::-1, ::]  # flip rows
 
         # Extract the information that we need
-        self.F = zsys.A[0, ::-1]        # input function coeffs
-        self.T = Tr                     # state space transformation
-        self.Tinv = np.linalg.inv(Tr)   # compute inverse once
+        self.F = zsys.A[0, ::-1]  # input function coeffs
+        self.T = Tr  # state space transformation
+        self.Tinv = np.linalg.inv(Tr)  # compute inverse once
 
         # Compute the flat output variable z = C x
-        Cfz = np.zeros(np.shape(linsys.C)); Cfz[0, 0] = 1
+        Cfz = np.zeros(np.shape(linsys.C))
+        Cfz[0, 0] = 1
         self.Cf = np.dot(Cfz, Tr)
 
     # Compute the flat flag from the state (and input)
@@ -120,10 +122,10 @@ class LinearFlatSystem(FlatSystem, LinearIOSystem):
         u = np.reshape(u, (1, -1))
         zflag = [np.zeros(self.nstates + 1)]
         zflag[0][0] = np.dot(self.Cf, x)
-        H = self.Cf                     # initial state transformation
+        H = self.Cf  # initial state transformation
         for i in range(1, self.nstates + 1):
             zflag[0][i] = np.dot(H, np.dot(self.A, x) + np.dot(self.B, u))
-            H = np.dot(H, self.A)       # derivative for next iteration
+            H = np.dot(H, self.A)  # derivative for next iteration
         return zflag
 
     # Compute state and input from flat flag

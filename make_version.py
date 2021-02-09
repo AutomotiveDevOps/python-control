@@ -18,14 +18,14 @@
 # now use jinja templates in conda-recipe to create the conda information.
 # The current version information is used in setup.py, control/__init__.py,
 # and doc/conf.py (for sphinx).
-
-from subprocess import check_output
 import os
+from subprocess import check_output
+
 
 def main():
-    cmd = 'git describe --always --long'
+    cmd = "git describe --always --long"
     # describe --long usually outputs "tag-numberofcommits-commitname"
-    output = check_output(cmd.split()).decode('utf-8').strip().rsplit('-',2)
+    output = check_output(cmd.split()).decode("utf-8").strip().rsplit("-", 2)
     if len(output) == 3:
         version, build, commit = output
     else:
@@ -35,11 +35,11 @@ def main():
         # This behaviour isn't well documented in git-describe docs,
         # but see, e.g., https://stackoverflow.com/a/36389573/1008142
         # and https://github.com/travis-ci/travis-ci/issues/3412
-        version = 'unknown'
-        build = 'unknown'
+        version = "unknown"
+        build = "unknown"
         # we don't ever expect just one dash from describe --long, but
         # just in case:
-        commit = '-'.join(output)
+        commit = "-".join(output)
 
     print("Version: %s" % version)
     print("Build: %s" % build)
@@ -47,12 +47,13 @@ def main():
 
     filename = "control/_version.py"
     print("Writing %s" % filename)
-    with open(filename, 'w') as fd:
-        if build == '0':
+    with open(filename, "w") as fd:
+        if build == "0":
             fd.write('__version__ = "%s"\n' % (version))
         else:
-            fd.write('__version__ = "%s.post%s"\n' % (version, build))
+            fd.write(f'__version__ = "{version}.post{build}"\n')
         fd.write('__commit__ = "%s"\n' % (commit))
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

@@ -34,7 +34,6 @@
 #
 # Author: Richard M. Murray
 # Date: 1 Jul 2019
-
 r"""The :mod:`control.flatsys` package contains a set of classes and functions
 that can be used to compute trajectories for differentially flat systems.
 
@@ -49,15 +48,13 @@ and can be evaluated using the :func:`~control.flatsys.SystemTrajectory.eval`
 member function.
 
 """
-
 # Basis function families
 from .basis import BasisFamily
+from .flatsys import FlatSystem
+from .flatsys import point_to_point
+from .linflat import LinearFlatSystem
 from .poly import PolyFamily
+from .systraj import SystemTrajectory
 
 # Classes
-from .systraj import SystemTrajectory
-from .flatsys import FlatSystem
-from .linflat import LinearFlatSystem
-
 # Package functions
-from .flatsys import point_to_point

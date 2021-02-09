@@ -6,7 +6,6 @@ Routines in this module:
 
 sample_system()
 """
-
 """Copyright (c) 2012 by California Institute of Technology
 All rights reserved.
 
@@ -45,14 +44,13 @@ Date: 6 October 2012
 $Id: dtime.py 185 2012-08-30 05:44:32Z murrayrm $
 
 """
-
 from .lti import isctime
 from .statesp import StateSpace
 
-__all__ = ['sample_system', 'c2d']
+__all__ = ["sample_system", "c2d"]
 
 # Sample a continuous time system
-def sample_system(sysc, Ts, method='zoh', alpha=None, prewarp_frequency=None):
+def sample_system(sysc, Ts, method="zoh", alpha=None, prewarp_frequency=None):
     """
     Convert a continuous time system to discrete time by sampling
 
@@ -92,7 +90,7 @@ def sample_system(sysc, Ts, method='zoh', alpha=None, prewarp_frequency=None):
     return sysc.sample(Ts, method, alpha, prewarp_frequency)
 
 
-def c2d(sysc, Ts, method='zoh', prewarp_frequency=None):
+def c2d(sysc, Ts, method="zoh", prewarp_frequency=None):
     """
     Convert a continuous time system to discrete time by sampling
 

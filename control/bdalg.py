@@ -12,7 +12,6 @@ feedback
 connect
 
 """
-
 """Copyright (c) 2010 by California Institute of Technology
 All rights reserved.
 
@@ -52,13 +51,13 @@ Revised: Kevin K. Chen, Dec 10
 $Id$
 
 """
-
 import numpy as np
-from . import xferfcn as tf
-from . import statesp as ss
-from . import frdata as frd
 
-__all__ = ['series', 'parallel', 'negate', 'feedback', 'append', 'connect']
+from . import frdata as frd
+from . import statesp as ss
+from . import xferfcn as tf
+
+__all__ = ["series", "parallel", "negate", "feedback", "append", "connect"]
 
 
 def series(sys1, *sysn):
@@ -103,7 +102,8 @@ def series(sys1, *sysn):
 
     """
     from functools import reduce
-    return reduce(lambda x, y:y*x, sysn, sys1)
+
+    return reduce(lambda x, y: y * x, sysn, sys1)
 
 
 def parallel(sys1, *sysn):
@@ -149,7 +149,8 @@ def parallel(sys1, *sysn):
 
     """
     from functools import reduce
-    return reduce(lambda x, y:x+y, sysn, sys1)
+
+    return reduce(lambda x, y: x + y, sysn, sys1)
 
 
 def negate(sys):
@@ -175,6 +176,7 @@ def negate(sys):
 
     """
     return -sys
+
 
 #! TODO: expand to allow sys2 default to work in MIMO case?
 def feedback(sys1, sys2=1, sign=-1):
@@ -227,14 +229,22 @@ def feedback(sys1, sys2=1, sign=-1):
         pass
 
     # Check for correct input types.
-    if not isinstance(sys1, (int, float, complex, np.number,
-                             tf.TransferFunction, ss.StateSpace, frd.FRD)):
-        raise TypeError("sys1 must be a TransferFunction, StateSpace " +
-                        "or FRD object, or a scalar.")
-    if not isinstance(sys2, (int, float, complex, np.number,
-                             tf.TransferFunction, ss.StateSpace, frd.FRD)):
-        raise TypeError("sys2 must be a TransferFunction, StateSpace " +
-                        "or FRD object, or a scalar.")
+    if not isinstance(
+        sys1,
+        (int, float, complex, np.number, tf.TransferFunction, ss.StateSpace, frd.FRD),
+    ):
+        raise TypeError(
+            "sys1 must be a TransferFunction, StateSpace "
+            + "or FRD object, or a scalar."
+        )
+    if not isinstance(
+        sys2,
+        (int, float, complex, np.number, tf.TransferFunction, ss.StateSpace, frd.FRD),
+    ):
+        raise TypeError(
+            "sys2 must be a TransferFunction, StateSpace "
+            + "or FRD object, or a scalar."
+        )
 
     # If sys1 is a scalar, convert it to the appropriate LTI type so that we can
     # its feedback member function.
@@ -245,11 +255,12 @@ def feedback(sys1, sys2=1, sign=-1):
             sys1 = ss._convert_to_statespace(sys1)
         elif isinstance(sys2, frd.FRD):
             sys1 = frd._convert_to_FRD(sys1, sys2.omega)
-        else: # sys2 is a scalar.
+        else:  # sys2 is a scalar.
             sys1 = tf._convert_to_transfer_function(sys1)
             sys2 = tf._convert_to_transfer_function(sys2)
 
     return sys1.feedback(sys2, sign)
+
 
 def append(*sys):
     """append(sys1, sys2, ..., sysn)
@@ -284,6 +295,7 @@ def append(*sys):
     for s in sys[1:]:
         s1 = s1.append(s)
     return s1
+
 
 def connect(sys, Q, inputv, outputv):
     """Index-based interconnection of an LTI system.
@@ -334,43 +346,42 @@ def connect(sys, Q, inputv, outputv):
     interconnecting multiple systems.
 
     """
-    inputv, outputv, Q = \
-        np.atleast_1d(inputv), np.atleast_1d(outputv), np.atleast_1d(Q)
+    inputv, outputv, Q = np.atleast_1d(inputv), np.atleast_1d(outputv), np.atleast_1d(Q)
     # check indices
     index_errors = (inputv - 1 > sys.ninputs) | (inputv < 1)
     if np.any(index_errors):
         raise IndexError(
-            "inputv index %s out of bounds" % inputv[np.where(index_errors)])
+            "inputv index %s out of bounds" % inputv[np.where(index_errors)]
+        )
     index_errors = (outputv - 1 > sys.noutputs) | (outputv < 1)
     if np.any(index_errors):
         raise IndexError(
-            "outputv index %s out of bounds" % outputv[np.where(index_errors)])
-    index_errors = (Q[:,0:1] - 1 > sys.ninputs) | (Q[:,0:1] < 1)
+            "outputv index %s out of bounds" % outputv[np.where(index_errors)]
+        )
+    index_errors = (Q[:, 0:1] - 1 > sys.ninputs) | (Q[:, 0:1] < 1)
     if np.any(index_errors):
-        raise IndexError(
-            "Q input index %s out of bounds" % Q[np.where(index_errors)])
-    index_errors = (np.abs(Q[:,1:]) - 1 > sys.noutputs)
+        raise IndexError("Q input index %s out of bounds" % Q[np.where(index_errors)])
+    index_errors = np.abs(Q[:, 1:]) - 1 > sys.noutputs
     if np.any(index_errors):
-        raise IndexError(
-            "Q output index %s out of bounds" % Q[np.where(index_errors)])
+        raise IndexError("Q output index %s out of bounds" % Q[np.where(index_errors)])
 
     # first connect
     K = np.zeros((sys.ninputs, sys.noutputs))
     for r in np.array(Q).astype(int):
-        inp = r[0]-1
+        inp = r[0] - 1
         for outp in r[1:]:
             if outp < 0:
-                K[inp,-outp-1] = -1.
+                K[inp, -outp - 1] = -1.0
             elif outp > 0:
-                K[inp,outp-1] = 1.
+                K[inp, outp - 1] = 1.0
     sys = sys.feedback(np.array(K), sign=1)
 
     # now trim
     Ytrim = np.zeros((len(outputv), sys.noutputs))
     Utrim = np.zeros((sys.ninputs, len(inputv)))
-    for i,u in enumerate(inputv):
-        Utrim[u-1,i] = 1.
-    for i,y in enumerate(outputv):
-        Ytrim[i,y-1] = 1.
+    for i, u in enumerate(inputv):
+        Utrim[u - 1, i] = 1.0
+    for i, y in enumerate(outputv):
+        Ytrim[i, y - 1] = 1.0
 
     return Ytrim * sys * Utrim

@@ -1,18 +1,28 @@
 """lti_test.py"""
-
 import numpy as np
 import pytest
-from .conftest import editsdefaults
 
 import control as ct
-from control import c2d, tf, tf2ss, NonlinearIOSystem
-from control.lti import (LTI, common_timebase, damp, dcgain, isctime, isdtime,
-                         issiso, pole, timebaseEqual, zero)
-from control.tests.conftest import slycotonly
+from .conftest import editsdefaults
+from control import c2d
+from control import NonlinearIOSystem
+from control import tf
+from control import tf2ss
 from control.exception import slycot_check
+from control.lti import common_timebase
+from control.lti import damp
+from control.lti import dcgain
+from control.lti import isctime
+from control.lti import isdtime
+from control.lti import issiso
+from control.lti import LTI
+from control.lti import pole
+from control.lti import timebaseEqual
+from control.lti import zero
+from control.tests.conftest import slycotonly
+
 
 class TestLTI:
-
     def test_pole(self):
         sys = tf(126, [-1, 42])
         np.testing.assert_equal(sys.pole(), 42)
@@ -41,8 +51,10 @@ class TestLTI:
     @slycotonly
     def test_issiso_mimo(self):
         # MIMO transfer function
-        sys = tf([[[-1, 41], [1]], [[1, 2], [3, 4]]],
-                 [[[1, 10], [1, 20]], [[1, 30], [1, 40]]]);
+        sys = tf(
+            [[[-1, 41], [1]], [[1, 2], [3, 4]]],
+            [[[1, 10], [1, 20]], [[1, 30], [1, 40]]],
+        )
         assert not issiso(sys)
         assert not issiso(sys, strict=True)
 
@@ -55,18 +67,17 @@ class TestLTI:
         # Test the continuous time case.
         zeta = 0.1
         wn = 42
-        p = -wn * zeta + 1j * wn * np.sqrt(1 - zeta**2)
-        sys = tf(1, [1, 2 * zeta * wn, wn**2])
+        p = -wn * zeta + 1j * wn * np.sqrt(1 - zeta ** 2)
+        sys = tf(1, [1, 2 * zeta * wn, wn ** 2])
         expected = ([wn, wn], [zeta, zeta], [p, p.conjugate()])
         np.testing.assert_equal(sys.damp(), expected)
         np.testing.assert_equal(damp(sys), expected)
 
         # Also test the discrete time case.
         dt = 0.001
-        sys_dt = c2d(sys, dt, method='matched')
-        p_zplane = np.exp(p*dt)
-        expected_dt = ([wn, wn], [zeta, zeta],
-                       [p_zplane, p_zplane.conjugate()])
+        sys_dt = c2d(sys, dt, method="matched")
+        p_zplane = np.exp(p * dt)
+        expected_dt = ([wn, wn], [zeta, zeta], [p_zplane, p_zplane.conjugate()])
         np.testing.assert_almost_equal(sys_dt.damp(), expected_dt)
         np.testing.assert_almost_equal(damp(sys_dt), expected_dt)
 
@@ -75,20 +86,24 @@ class TestLTI:
         np.testing.assert_equal(sys.dcgain(), 42)
         np.testing.assert_equal(dcgain(sys), 42)
 
-    @pytest.mark.parametrize("dt1, dt2, expected",
-                             [(None, None, True),
-                              (None, 0, True),
-                              (None, 1, True),
-                              pytest.param(None, True, True,
-                                           marks=pytest.mark.xfail(
-                                               reason="returns false")),
-                              (0, 0, True),
-                              (0, 1, False),
-                              (0, True, False),
-                              (1, 1, True),
-                              (1, 2, False),
-                              (1, True, False),
-                              (True, True, True)])
+    @pytest.mark.parametrize(
+        "dt1, dt2, expected",
+        [
+            (None, None, True),
+            (None, 0, True),
+            (None, 1, True),
+            pytest.param(
+                None, True, True, marks=pytest.mark.xfail(reason="returns false")
+            ),
+            (0, 0, True),
+            (0, 1, False),
+            (0, True, False),
+            (1, 1, True),
+            (1, 2, False),
+            (1, True, False),
+            (True, True, True),
+        ],
+    )
     def test_timebaseEqual_deprecated(self, dt1, dt2, expected):
         """Test that timbaseEqual throws a warning and returns as documented"""
         sys1 = tf([1], [1, 2, 3], dt1)
@@ -103,16 +118,19 @@ class TestLTI:
         with pytest.deprecated_call():
             assert timebaseEqual(sys2, sys1) is expected
 
-    @pytest.mark.parametrize("dt1, dt2, expected",
-                             [(None, None, None),
-                              (None, 0, 0),
-                              (None, 1, 1),
-                              (None, True, True),
-                              (True, True, True),
-                              (True, 1, 1),
-                              (1, 1, 1),
-                              (0, 0, 0),
-                              ])
+    @pytest.mark.parametrize(
+        "dt1, dt2, expected",
+        [
+            (None, None, None),
+            (None, 0, 0),
+            (None, 1, 1),
+            (None, True, True),
+            (True, True, True),
+            (True, 1, 1),
+            (1, 1, 1),
+            (0, 0, 0),
+        ],
+    )
     @pytest.mark.parametrize("sys1", [True, False])
     @pytest.mark.parametrize("sys2", [True, False])
     def test_common_timebase(self, dt1, dt2, expected, sys1, sys2):
@@ -123,10 +141,7 @@ class TestLTI:
         # Make sure behaviour is symmetric
         assert common_timebase(i2, i1) == expected
 
-    @pytest.mark.parametrize("i1, i2",
-                             [(True, 0),
-                              (0, 1),
-                              (1, 2)])
+    @pytest.mark.parametrize("i1, i2", [(True, 0), (0, 1), (1, 2)])
     def test_common_timebase_errors(self, i1, i2):
         """Test that common_timbase throws errors on invalid combinations"""
         with pytest.raises(ValueError):
@@ -135,14 +150,13 @@ class TestLTI:
         with pytest.raises(ValueError):
             common_timebase(i2, i1)
 
-    @pytest.mark.parametrize("dt, ref, strictref",
-                             [(None, True, False),
-                              (0, False, False),
-                              (1, True, True),
-                              (True, True, True)])
-    @pytest.mark.parametrize("objfun, arg",
-                             [(LTI, ()),
-                              (NonlinearIOSystem, (lambda x: x, ))])
+    @pytest.mark.parametrize(
+        "dt, ref, strictref",
+        [(None, True, False), (0, False, False), (1, True, True), (True, True, True)],
+    )
+    @pytest.mark.parametrize(
+        "objfun, arg", [(LTI, ()), (NonlinearIOSystem, (lambda x: x,))]
+    )
     def test_isdtime(self, objfun, arg, dt, ref, strictref):
         """Test isdtime and isctime functions to follow convention"""
         obj = objfun(*arg, dt=dt)
@@ -158,43 +172,47 @@ class TestLTI:
 
     @pytest.mark.usefixtures("editsdefaults")
     @pytest.mark.parametrize("fcn", [ct.ss, ct.tf, ct.frd, ct.ss2io])
-    @pytest.mark.parametrize("nstate, nout, ninp, omega, squeeze, shape", [
-        [1, 1, 1, 0.1,          None,  ()],             # SISO
-        [1, 1, 1, [0.1],        None,  (1,)],
-        [1, 1, 1, [0.1, 1, 10], None,  (3,)],
-        [2, 1, 1, 0.1,          True,  ()],
-        [2, 1, 1, [0.1],        True,  ()],
-        [2, 1, 1, [0.1, 1, 10], True,  (3,)],
-        [3, 1, 1, 0.1,          False, (1, 1)],
-        [3, 1, 1, [0.1],        False, (1, 1, 1)],
-        [3, 1, 1, [0.1, 1, 10], False, (1, 1, 3)],
-        [1, 2, 1, 0.1,          None,  (2, 1)],         # SIMO
-        [1, 2, 1, [0.1],        None,  (2, 1, 1)],
-        [1, 2, 1, [0.1, 1, 10], None,  (2, 1, 3)],
-        [2, 2, 1, 0.1,          True,  (2,)],
-        [2, 2, 1, [0.1],        True,  (2,)],
-        [3, 2, 1, 0.1,          False, (2, 1)],
-        [3, 2, 1, [0.1],        False, (2, 1, 1)],
-        [3, 2, 1, [0.1, 1, 10], False, (2, 1, 3)],
-        [1, 1, 2, [0.1, 1, 10], None, (1, 2, 3)],       # MISO
-        [2, 1, 2, [0.1, 1, 10], True, (2, 3)],
-        [3, 1, 2, [0.1, 1, 10], False, (1, 2, 3)],
-        [1, 2, 2, [0.1, 1, 10], None, (2, 2, 3)],       # MIMO
-        [2, 2, 2, [0.1, 1, 10], True, (2, 2, 3)],
-        [3, 2, 2, [0.1, 1, 10], False, (2, 2, 3)]
-    ])
+    @pytest.mark.parametrize(
+        "nstate, nout, ninp, omega, squeeze, shape",
+        [
+            [1, 1, 1, 0.1, None, ()],  # SISO
+            [1, 1, 1, [0.1], None, (1,)],
+            [1, 1, 1, [0.1, 1, 10], None, (3,)],
+            [2, 1, 1, 0.1, True, ()],
+            [2, 1, 1, [0.1], True, ()],
+            [2, 1, 1, [0.1, 1, 10], True, (3,)],
+            [3, 1, 1, 0.1, False, (1, 1)],
+            [3, 1, 1, [0.1], False, (1, 1, 1)],
+            [3, 1, 1, [0.1, 1, 10], False, (1, 1, 3)],
+            [1, 2, 1, 0.1, None, (2, 1)],  # SIMO
+            [1, 2, 1, [0.1], None, (2, 1, 1)],
+            [1, 2, 1, [0.1, 1, 10], None, (2, 1, 3)],
+            [2, 2, 1, 0.1, True, (2,)],
+            [2, 2, 1, [0.1], True, (2,)],
+            [3, 2, 1, 0.1, False, (2, 1)],
+            [3, 2, 1, [0.1], False, (2, 1, 1)],
+            [3, 2, 1, [0.1, 1, 10], False, (2, 1, 3)],
+            [1, 1, 2, [0.1, 1, 10], None, (1, 2, 3)],  # MISO
+            [2, 1, 2, [0.1, 1, 10], True, (2, 3)],
+            [3, 1, 2, [0.1, 1, 10], False, (1, 2, 3)],
+            [1, 2, 2, [0.1, 1, 10], None, (2, 2, 3)],  # MIMO
+            [2, 2, 2, [0.1, 1, 10], True, (2, 2, 3)],
+            [3, 2, 2, [0.1, 1, 10], False, (2, 2, 3)],
+        ],
+    )
     def test_squeeze(self, fcn, nstate, nout, ninp, omega, squeeze, shape):
         # Create the system to be tested
         if fcn == ct.frd:
             sys = fcn(ct.rss(nstate, nout, ninp), [1e-2, 1e-1, 1, 1e1, 1e2])
         elif fcn == ct.tf and (nout > 1 or ninp > 1) and not slycot_check():
-            pytest.skip("Conversion of MIMO systems to transfer functions "
-                        "requires slycot.")
+            pytest.skip(
+                "Conversion of MIMO systems to transfer functions requires slycot."
+            )
         else:
             sys = fcn(ct.rss(nstate, nout, ninp))
 
         # Convert the frequency list to an array for easy of use
-        isscalar = not hasattr(omega, '__len__')
+        isscalar = not hasattr(omega, "__len__")
         omega = np.array(omega)
 
         # Call the transfer function directly and make sure shape is correct
@@ -219,7 +237,7 @@ class TestLTI:
             assert sys(omega * 1j).shape == shape
 
         # Changing config.default to False should return 3D frequency response
-        ct.config.set_defaults('control', squeeze_frequency_response=False)
+        ct.config.set_defaults("control", squeeze_frequency_response=False)
         mag, phase, _ = sys.frequency_response(omega)
         if isscalar:
             assert mag.shape == (sys.noutputs, sys.ninputs, 1)
@@ -229,10 +247,12 @@ class TestLTI:
         else:
             assert mag.shape == (sys.noutputs, sys.ninputs, len(omega))
             assert phase.shape == (sys.noutputs, sys.ninputs, len(omega))
-            assert sys(omega * 1j).shape == \
-                (sys.noutputs, sys.ninputs, len(omega))
-            assert ct.evalfr(sys, omega * 1j).shape == \
-                (sys.noutputs, sys.ninputs, len(omega))
+            assert sys(omega * 1j).shape == (sys.noutputs, sys.ninputs, len(omega))
+            assert ct.evalfr(sys, omega * 1j).shape == (
+                sys.noutputs,
+                sys.ninputs,
+                len(omega),
+            )
 
     @pytest.mark.parametrize("fcn", [ct.ss, ct.tf, ct.frd, ct.ss2io])
     def test_squeeze_exceptions(self, fcn):
@@ -243,8 +263,8 @@ class TestLTI:
 
         with pytest.raises(ValueError, match="unknown squeeze value"):
             sys.frequency_response([1], squeeze=1)
-            sys([1], squeeze='siso')
-            evalfr(sys, [1], squeeze='siso')
+            sys([1], squeeze="siso")
+            evalfr(sys, [1], squeeze="siso")
 
         with pytest.raises(ValueError, match="must be 1D"):
             sys.frequency_response([[0.1, 1], [1, 10]])
@@ -260,7 +280,6 @@ class TestLTI:
         assert noutputs == sys.noutputs
 
         if isinstance(sys, ct.StateSpace):
-            with pytest.warns(
-                    DeprecationWarning, match="StateSpace `states`"):
+            with pytest.warns(DeprecationWarning, match="StateSpace `states`"):
                 nstates = sys.states
             assert nstates == sys.nstates

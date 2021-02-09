@@ -6,9 +6,12 @@ Date: 22 Oct 2017
 Modified:
 * 29 Dec 2017, RMM - updated file name and added header
 """
-
 import numpy as np
-from control import dcgain, ss, tf
+
+from control import dcgain
+from control import ss
+from control import tf
+
 
 class TestTfInputIntElement:
     """input_element_int_test
@@ -23,7 +26,7 @@ class TestTfInputIntElement:
 
         sys = tf(num, den)
 
-        np.testing.assert_array_max_ulp(1., dcgain(sys))
+        np.testing.assert_array_max_ulp(1.0, dcgain(sys))
 
     def test_tf_num_with_numpy_int_element(self):
         num = np.convolve([1], [1, 1])
@@ -31,7 +34,7 @@ class TestTfInputIntElement:
 
         sys = tf(num, den)
 
-        np.testing.assert_array_max_ulp(1., dcgain(sys))
+        np.testing.assert_array_max_ulp(1.0, dcgain(sys))
 
     # currently these pass
     def test_tf_input_with_int_element(self):
@@ -40,13 +43,11 @@ class TestTfInputIntElement:
 
         sys = tf(num, den)
 
-        np.testing.assert_array_max_ulp(1., dcgain(sys))
+        np.testing.assert_array_max_ulp(1.0, dcgain(sys))
 
     def test_ss_input_with_int_element(self):
-        a = np.array([[0, 1],
-                      [-1, -2]], dtype=int)
-        b = np.array([[0],
-                       [1]], dtype=int)
+        a = np.array([[0, 1], [-1, -2]], dtype=int)
+        b = np.array([[0], [1]], dtype=int)
         c = np.array([[0, 1]], dtype=int)
         d = np.array([[1]], dtype=int)
 
@@ -55,12 +56,9 @@ class TestTfInputIntElement:
         np.testing.assert_array_max_ulp(dcgain(sys), dcgain(sys2))
 
     def test_ss_input_with_0int_dcgain(self):
-        a = np.array([[0, 1],
-                      [-1, -2]], dtype=int)
-        b = np.array([[0],
-                       [1]], dtype=int)
+        a = np.array([[0, 1], [-1, -2]], dtype=int)
+        b = np.array([[0], [1]], dtype=int)
         c = np.array([[0, 1]], dtype=int)
         d = 0
         sys = ss(a, b, c, d)
-        np.testing.assert_allclose(dcgain(sys), 0,
-                                   atol=np.finfo(np.float).epsneg)
+        np.testing.assert_allclose(dcgain(sys), 0, atol=np.finfo(np.float).epsneg)

@@ -4,13 +4,15 @@ Demonstrate mixed-sensitivity H-infinity design for a MIMO plant.
 
 Based on Example 3.8 from Multivariable Feedback Control, Skogestad and Postlethwaite, 1st Edition.
 """
-
 import os
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
-from control import tf, ss, mixsyn, step_response
+from control import mixsyn
+from control import ss
+from control import step_response
+from control import tf
 
 
 def weighting(wb, m, a):
@@ -21,7 +23,7 @@ def weighting(wb, m, a):
     wf - SISO LTI object
     """
     s = tf([1, 0], [1])
-    return (s/m + wb) / (s + wb*a)
+    return (s / m + wb) / (s + wb * a)
 
 
 def plant():
@@ -29,10 +31,7 @@ def plant():
     g - LTI object; 2x2 plant with a RHP zero, at s=0.5.
     """
     den = [0.2, 1.2, 1]
-    gtf = tf([[[1], [1]],
-              [[2, 1], [2]]],
-             [[den, den],
-              [den, den]])
+    gtf = tf([[[1], [1]], [[2, 1], [2]]], [[den, den], [den, den]])
     return ss(gtf)
 
 
@@ -44,7 +43,7 @@ def triv_sigma(g, w):
     w - frequencies, length m
     s - (m,n) array of singular values of g(1j*w)"""
     m, p, _ = g.frequency_response(w)
-    sjw = (m*np.exp(1j*p)).transpose(2, 0, 1)
+    sjw = (m * np.exp(1j * p)).transpose(2, 0, 1)
     sv = np.linalg.svd(sjw, compute_uv=False)
     return sv
 
@@ -63,31 +62,31 @@ def analysis():
 
     plt.figure(1)
     plt.subplot(1, 3, 1)
-    plt.plot(t, yu1[0], label='$y_1$')
-    plt.plot(t, yu1[1], label='$y_2$')
-    plt.xlabel('time')
-    plt.ylabel('output')
+    plt.plot(t, yu1[0], label="$y_1$")
+    plt.plot(t, yu1[1], label="$y_2$")
+    plt.xlabel("time")
+    plt.ylabel("output")
     plt.ylim([-1.1, 2.1])
     plt.legend()
-    plt.title('o/l response\nto input [1,0]')
+    plt.title("o/l response\nto input [1,0]")
 
     plt.subplot(1, 3, 2)
-    plt.plot(t, yu2[0], label='$y_1$')
-    plt.plot(t, yu2[1], label='$y_2$')
-    plt.xlabel('time')
-    plt.ylabel('output')
+    plt.plot(t, yu2[0], label="$y_1$")
+    plt.plot(t, yu2[1], label="$y_2$")
+    plt.xlabel("time")
+    plt.ylabel("output")
     plt.ylim([-1.1, 2.1])
     plt.legend()
-    plt.title('o/l response\nto input [0,1]')
+    plt.title("o/l response\nto input [0,1]")
 
     plt.subplot(1, 3, 3)
-    plt.plot(t, yuz[0], label='$y_1$')
-    plt.plot(t, yuz[1], label='$y_2$')
-    plt.xlabel('time')
-    plt.ylabel('output')
+    plt.plot(t, yuz[0], label="$y_1$")
+    plt.plot(t, yuz[1], label="$y_2$")
+    plt.xlabel("time")
+    plt.ylabel("output")
     plt.ylim([-1.1, 2.1])
     plt.legend()
-    plt.title('o/l response\nto input [1,-1]')
+    plt.title("o/l response\nto input [1,-1]")
 
 
 def synth(wb1, wb2):
@@ -124,16 +123,16 @@ def design():
     # won't plot this one, just want gamma
     _, gam3 = synth(25, 0.25)
 
-    print('design 1 gamma {:.3g} (Skogestad: 2.80)'.format(gam1))
-    print('design 2 gamma {:.3g} (Skogestad: 2.92)'.format(gam2))
-    print('design 3 gamma {:.3g} (Skogestad: 6.73)'.format(gam3))
+    print(f"design 1 gamma {gam1:.3g} (Skogestad: 2.80)")
+    print(f"design 2 gamma {gam2:.3g} (Skogestad: 2.92)")
+    print(f"design 3 gamma {gam3:.3g} (Skogestad: 6.73)")
 
     # do the designs
     g = plant()
     w = np.logspace(-2, 2, 101)
     I = ss([], [], [], np.eye(2))
-    s1 = I.feedback(g*k1)
-    s2 = I.feedback(g*k2)
+    s1 = I.feedback(g * k1)
+    s2 = I.feedback(g * k2)
 
     # frequency response
     sv1 = triv_sigma(s1, w)
@@ -142,16 +141,16 @@ def design():
     plt.figure(2)
 
     plt.subplot(1, 2, 1)
-    plt.semilogx(w, 20*np.log10(sv1[:, 0]), label=r'$\sigma_1(S_1)$')
-    plt.semilogx(w, 20*np.log10(sv1[:, 1]), label=r'$\sigma_2(S_1)$')
-    plt.semilogx(w, 20*np.log10(sv2[:, 0]), label=r'$\sigma_1(S_2)$')
-    plt.semilogx(w, 20*np.log10(sv2[:, 1]), label=r'$\sigma_2(S_2)$')
+    plt.semilogx(w, 20 * np.log10(sv1[:, 0]), label=r"$\sigma_1(S_1)$")
+    plt.semilogx(w, 20 * np.log10(sv1[:, 1]), label=r"$\sigma_2(S_1)$")
+    plt.semilogx(w, 20 * np.log10(sv2[:, 0]), label=r"$\sigma_1(S_2)$")
+    plt.semilogx(w, 20 * np.log10(sv2[:, 1]), label=r"$\sigma_2(S_2)$")
     plt.ylim([-60, 10])
-    plt.ylabel('magnitude [dB]')
+    plt.ylabel("magnitude [dB]")
     plt.xlim([1e-2, 1e2])
-    plt.xlabel('freq [rad/s]')
+    plt.xlabel("freq [rad/s]")
     plt.legend()
-    plt.title('Singular values of S')
+    plt.title("Singular values of S")
 
     # time response
 
@@ -159,25 +158,25 @@ def design():
     # design 2, output 2 does not, and is very fast, while output 1
     # has a larger initial inverse response than in design 1
     time = np.linspace(0, 10, 301)
-    t1 = (g*k1).feedback(I)
-    t2 = (g*k2).feedback(I)
+    t1 = (g * k1).feedback(I)
+    t2 = (g * k2).feedback(I)
 
     y1 = step_opposite(t1, time)
     y2 = step_opposite(t2, time)
 
     plt.subplot(1, 2, 2)
-    plt.plot(time, y1[0], label='des. 1 $y_1(t))$')
-    plt.plot(time, y1[1], label='des. 1 $y_2(t))$')
-    plt.plot(time, y2[0], label='des. 2 $y_1(t))$')
-    plt.plot(time, y2[1], label='des. 2 $y_2(t))$')
-    plt.xlabel('time [s]')
-    plt.ylabel('response [1]')
+    plt.plot(time, y1[0], label="des. 1 $y_1(t))$")
+    plt.plot(time, y1[1], label="des. 1 $y_2(t))$")
+    plt.plot(time, y2[0], label="des. 2 $y_1(t))$")
+    plt.plot(time, y2[1], label="des. 2 $y_2(t))$")
+    plt.xlabel("time [s]")
+    plt.ylabel("response [1]")
     plt.legend()
-    plt.title('c/l response to reference [1,-1]')
+    plt.title("c/l response to reference [1,-1]")
 
 
 if __name__ == "__main__":
     analysis()
     design()
-    if 'PYCONTROL_TEST_EXAMPLES' not in os.environ:
+    if "PYCONTROL_TEST_EXAMPLES" not in os.environ:
         plt.show()

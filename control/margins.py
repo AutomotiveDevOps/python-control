@@ -8,10 +8,7 @@ margins.stability_margins
 margins.phase_crossover_frequencies
 margins.margin
 """
-
 # Python 3 compatibility (needs to go here)
-from __future__ import print_function
-
 """Copyright (c) 2011 by California Institute of Technology
 All rights reserved.
 
@@ -49,16 +46,18 @@ Date: 14 July 2011
 
 $Id$
 """
-
 import math
+
 import numpy as np
 import scipy as sp
-from . import xferfcn
-from .lti import issiso, evalfr
-from . import frdata
-from .exception import ControlMIMONotImplemented
 
-__all__ = ['stability_margins', 'phase_crossover_frequencies', 'margin']
+from . import frdata
+from . import xferfcn
+from .exception import ControlMIMONotImplemented
+from .lti import evalfr
+from .lti import issiso
+
+__all__ = ["stability_margins", "phase_crossover_frequencies", "margin"]
 
 
 # private helper functions
@@ -70,8 +69,8 @@ def _poly_iw(sys):
     """
     num = sys.num[0][0]
     den = sys.den[0][0]
-    num_iw = (1J)**np.arange(len(num) - 1, -1, -1) * num
-    den_iw = (1J)**np.arange(len(den) - 1, -1, -1) * den
+    num_iw = (1j) ** np.arange(len(num) - 1, -1, -1) * num
+    den_iw = (1j) ** np.arange(len(den) - 1, -1, -1) * den
     return num_iw, den_iw
 
 
@@ -81,8 +80,9 @@ def _poly_iw_sqr(pol_iw):
 
 def _poly_iw_real_crossing(num_iw, den_iw, epsw):
     # Return w where imag(H(iw)) == 0
-    test_w = np.polysub(np.polymul(num_iw.imag, den_iw.real),
-                        np.polymul(num_iw.real, den_iw.imag))
+    test_w = np.polysub(
+        np.polymul(num_iw.imag, den_iw.real), np.polymul(num_iw.real, den_iw.imag)
+    )
     w = np.roots(test_w)
     w = np.real(w[np.isreal(w)])
     w = w[w >= epsw]
@@ -105,7 +105,8 @@ def _poly_iw_wstab(num_iw, den_iw, epsw):
     test_wstabd = _poly_iw_sqr(den_iw)
     test_wstab = np.polysub(
         np.polymul(np.polyder(test_wstabn), test_wstabd),
-        np.polymul(np.polyder(test_wstabd), test_wstabn))
+        np.polymul(np.polyder(test_wstabd), test_wstabn),
+    )
 
     # find the solutions, for positive omega, and only real ones
     wstab = np.roots(test_wstab)
@@ -114,7 +115,7 @@ def _poly_iw_wstab(num_iw, den_iw, epsw):
 
     # and find the value of the 2nd derivative there, needs to be positive
     wstabplus = np.polyval(np.polyder(test_wstab), wstab)
-    wstab = wstab[wstabplus > 0.]
+    wstab = wstab[wstabplus > 0.0]
     return wstab
 
 
@@ -123,8 +124,10 @@ def _poly_z_invz(sys):
     den = sys.den[0][0]  # num(z) = b_q * z^p + b_(q-1) * z^(q-1) + ... + b_0
     p_q = len(num) - len(den)
     if p_q > 0:
-        raise ValueError("Not a proper transfer function: Denominator must "
-                         "have equal or higher order than numerator.")
+        raise ValueError(
+            "Not a proper transfer function: Denominator must "
+            "have equal or higher order than numerator."
+        )
     num_inv_zp = num[::-1]  # num(1/z) * z^p
     den_inv_zq = den[::-1]  # den(1/z) * z^q
     return num, den, num_inv_zp, den_inv_zq, p_q, sys.dt
@@ -133,7 +136,7 @@ def _poly_z_invz(sys):
 def _z_filter(z, dt, eps):
     # z = exp(1J w dt)
     # |z| == 1 with some float precision tolerance
-    z = z[np.abs(np.abs(z) - 1.) < eps]
+    z = z[np.abs(np.abs(z) - 1.0) < eps]
     zarg = np.angle(z)
     zidx = (0 <= zarg) * (zarg < np.pi)
     omega = zarg[zidx] / dt
@@ -149,7 +152,7 @@ def _poly_z_real_crossing(num, den, num_inv_zp, den_inv_zq, p_q, dt, epsw):
         x = [1] + [0] * (-p_q)
         p2 = np.polymul(p2, x)
     z = np.roots(np.polysub(p1, p2))
-    eps = np.finfo(float).eps**(1 / len(p2))
+    eps = np.finfo(float).eps ** (1 / len(p2))
     z, w = _z_filter(z, dt, eps)
     z = z[w >= epsw]
     w = w[w >= epsw]
@@ -165,7 +168,7 @@ def _poly_z_mag1_crossing(num, den, num_inv_zp, den_inv_zq, p_q, dt, epsw):
         x = [1] + [0] * (-p_q)
         p1 = np.polymul(p1, x)
     z = np.roots(np.polysub(p1, p2))
-    eps = np.finfo(float).eps**(1 / len(p2))
+    eps = np.finfo(float).eps ** (1 / len(p2))
     z, w = _z_filter(z, dt, eps)
     z = z[w > epsw]
     w = w[w > epsw]
@@ -181,9 +184,14 @@ def _poly_z_wstab(num, den, num_inv_zp, den_inv_zq, p_q, dt, epsw):
 
     # optimization function to minimize
     def fun(wdt):
-        with np.errstate(all='ignore'):  # den=0 is okay
-            return np.abs(1 + (np.polyval(num, np.exp(1J * wdt)) /
-                               np.polyval(den, np.exp(1J * wdt))))
+        with np.errstate(all="ignore"):  # den=0 is okay
+            return np.abs(
+                1
+                + (
+                    np.polyval(num, np.exp(1j * wdt))
+                    / np.polyval(den, np.exp(1j * wdt))
+                )
+            )
 
     # find initial guess
     wdt_v = np.geomspace(1e-4, 2 * np.pi, num=100)
@@ -192,13 +200,10 @@ def _poly_z_wstab(num, den, num_inv_zp, den_inv_zq, p_q, dt, epsw):
     # Use `minimize` instead of univariate `minimize_scalars` because we want
     # to provide some initial value in order to not converge on frequencies
     # with extremely low gradients.
-    res = sp.optimize.minimize(
-        fun=fun,
-        x0=[wdt0],
-        bounds=[(0, 2 * np.pi)])
+    res = sp.optimize.minimize(fun=fun, x0=[wdt0], bounds=[(0, 2 * np.pi)])
     if res.success:
         wdt = res.x
-        z = np.exp(1J * wdt)
+        z = np.exp(1j * wdt)
         w = wdt / dt
     else:
         z = np.array([])
@@ -273,37 +278,39 @@ def stability_margins(sysdata, returnall=False, epsw=0.0):
             sys = frdata.FRD(sysdata, smooth=True)
         elif isinstance(sysdata, xferfcn.TransferFunction):
             sys = sysdata
-        elif getattr(sysdata, '__iter__', False) and len(sysdata) == 3:
+        elif getattr(sysdata, "__iter__", False) and len(sysdata) == 3:
             mag, phase, omega = sysdata
-            sys = frdata.FRD(mag * np.exp(1j * phase * math.pi / 180.),
-                             omega, smooth=True)
+            sys = frdata.FRD(
+                mag * np.exp(1j * phase * math.pi / 180.0), omega, smooth=True
+            )
         else:
             sys = xferfcn._convert_to_transfer_function(sysdata)
     except Exception as e:
         print(e)
-        raise ValueError("Margin sysdata must be either a linear system or "
-                         "a 3-sequence of mag, phase, omega.")
+        raise ValueError(
+            "Margin sysdata must be either a linear system or "
+            "a 3-sequence of mag, phase, omega."
+        )
 
     # check for siso
     if not issiso(sys):
-        raise ControlMIMONotImplemented(
-            "Can only do margins for SISO system")
+        raise ControlMIMONotImplemented("Can only do margins for SISO system")
 
     if isinstance(sys, xferfcn.TransferFunction):
         if sys.isctime():
             num_iw, den_iw = _poly_iw(sys)
             # frequency for gain margin: phase crosses -180 degrees
             w_180 = _poly_iw_real_crossing(num_iw, den_iw, epsw)
-            with np.errstate(all='ignore'):  # den=0 is okay
-                w180_resp = sys(1J * w_180)
+            with np.errstate(all="ignore"):  # den=0 is okay
+                w180_resp = sys(1j * w_180)
 
             # frequency for phase margin : gain crosses magnitude 1
             wc = _poly_iw_mag1_crossing(num_iw, den_iw, epsw)
-            wc_resp = sys(1J * wc)
+            wc_resp = sys(1j * wc)
 
             # stability margin
             wstab = _poly_iw_wstab(num_iw, den_iw, epsw)
-            ws_resp = sys(1J * wstab)
+            ws_resp = sys(1j * wstab)
 
         else:  # Discrete Time
             zargs = _poly_z_invz(sys)
@@ -320,8 +327,8 @@ def stability_margins(sysdata, returnall=False, epsw=0.0):
             ws_resp = sys(z)
 
         # only keep frequencies where the negative real axis is crossed
-        w_180 = w_180[w180_resp <= 0.]
-        w180_resp = w180_resp[w180_resp <= 0.]
+        w_180 = w_180[w180_resp <= 0.0]
+        w180_resp = w180_resp[w180_resp <= 0.0]
 
         # sort
         idx = np.argsort(w_180)
@@ -348,14 +355,14 @@ def stability_margins(sysdata, returnall=False, epsw=0.0):
 
         def _dstab(w):
             """Calculate the distance from -1 point"""
-            return np.abs(sys(1j * w) + 1.)
+            return np.abs(sys(1j * w) + 1.0)
 
         # find the phase crossings ang(H(jw) == -180
         widx = np.where(np.diff(np.sign(_arg(sys.omega))))[0]
         widx = widx[np.real(sys(1j * sys.omega[widx])) <= 0]
         w_180 = np.array(
-            [sp.optimize.brentq(_arg, sys.omega[i], sys.omega[i+1])
-             for i in widx])
+            [sp.optimize.brentq(_arg, sys.omega[i], sys.omega[i + 1]) for i in widx]
+        )
         # TODO: replace by evalfr(sys, 1J*w) or sys(1J*w), (needs gh-449)
         w180_resp = sys(1j * w_180)
 
@@ -363,43 +370,46 @@ def stability_margins(sysdata, returnall=False, epsw=0.0):
         # a correct range
         widx = np.where(np.diff(np.sign(_mod(sys.omega))))[0]
         wc = np.array(
-            [sp.optimize.brentq(_mod, sys.omega[i], sys.omega[i+1])
-             for i in widx])
+            [sp.optimize.brentq(_mod, sys.omega[i], sys.omega[i + 1]) for i in widx]
+        )
         wc_resp = sys(1j * wc)
 
         # find all stab margins?
-        widx, = np.where(np.diff(np.sign(np.diff(_dstab(sys.omega)))) > 0)
+        (widx,) = np.where(np.diff(np.sign(np.diff(_dstab(sys.omega)))) > 0)
         wstab = np.array(
-            [sp.optimize.minimize_scalar(_dstab,
-                                         bracket=(sys.omega[i], sys.omega[i+1])
-                                         ).x
-             for i in widx])
+            [
+                sp.optimize.minimize_scalar(
+                    _dstab, bracket=(sys.omega[i], sys.omega[i + 1])
+                ).x
+                for i in widx
+            ]
+        )
         wstab = wstab[(wstab >= sys.omega[0]) * (wstab <= sys.omega[-1])]
         ws_resp = sys(1j * wstab)
 
-    with np.errstate(all='ignore'):  # |G|=0 is okay and yields inf
-        GM = 1. / np.abs(w180_resp)
-    PM = np.remainder(np.angle(wc_resp, deg=True), 360.) - 180.
-    SM = np.abs(ws_resp + 1.)
+    with np.errstate(all="ignore"):  # |G|=0 is okay and yields inf
+        GM = 1.0 / np.abs(w180_resp)
+    PM = np.remainder(np.angle(wc_resp, deg=True), 360.0) - 180.0
+    SM = np.abs(ws_resp + 1.0)
 
     if returnall:
         return GM, PM, SM, w_180, wc, wstab
     else:
         if GM.shape[0] and not np.isinf(GM).all():
-            with np.errstate(all='ignore'):
-                gmidx = np.where(np.abs(np.log(GM)) ==
-                                 np.min(np.abs(np.log(GM))))
+            with np.errstate(all="ignore"):
+                gmidx = np.where(np.abs(np.log(GM)) == np.min(np.abs(np.log(GM))))
         else:
             gmidx = -1
         if PM.shape[0]:
             pmidx = np.where(np.abs(PM) == np.amin(np.abs(PM)))[0]
         return (
-            (not gmidx != -1 and float('inf')) or GM[gmidx][0],
-            (not PM.shape[0] and float('inf')) or PM[pmidx][0],
-            (not SM.shape[0] and float('inf')) or np.amin(SM),
-            (not gmidx != -1 and float('nan')) or w_180[gmidx][0],
-            (not wc.shape[0] and float('nan')) or wc[pmidx][0],
-            (not wstab.shape[0] and float('nan')) or wstab[SM==np.amin(SM)][0])
+            (not gmidx != -1 and float("inf")) or GM[gmidx][0],
+            (not PM.shape[0] and float("inf")) or PM[pmidx][0],
+            (not SM.shape[0] and float("inf")) or np.amin(SM),
+            (not gmidx != -1 and float("nan")) or w_180[gmidx][0],
+            (not wc.shape[0] and float("nan")) or wc[pmidx][0],
+            (not wstab.shape[0] and float("nan")) or wstab[SM == np.amin(SM)][0],
+        )
 
 
 # Contributed by Steffen Waldherr <waldherr@ist.uni-stuttgart.de>
@@ -429,19 +439,18 @@ def phase_crossover_frequencies(sys):
     tf = xferfcn._convert_to_transfer_function(sys)
 
     if not issiso(tf):
-        raise ControlMIMONotImplemented(
-            "Can only calculate crossovers for SISO system")
+        raise ControlMIMONotImplemented("Can only calculate crossovers for SISO system")
 
     # Compute frequencies that we cross over the real axis
     if sys.isctime():
         num_iw, den_iw = _poly_iw(tf)
-        omega = _poly_iw_real_crossing(num_iw, den_iw, 0.)
+        omega = _poly_iw_real_crossing(num_iw, den_iw, 0.0)
 
         # using real() to avoid rounding errors and results like 1+0j
-        gain = np.real(evalfr(sys, 1J * omega))
+        gain = np.real(evalfr(sys, 1j * omega))
     else:
         zargs = _poly_z_invz(sys)
-        z, omega = _poly_z_real_crossing(*zargs, epsw=0.)
+        z, omega = _poly_z_real_crossing(*zargs, epsw=0.0)
         gain = np.real(evalfr(sys, z))
 
     return omega, gain
@@ -491,7 +500,6 @@ def margin(*args):
     elif len(args) == 3:
         margin = stability_margins(args)
     else:
-        raise ValueError("Margin needs 1 or 3 arguments; received %i."
-            % len(args))
+        raise ValueError("Margin needs 1 or 3 arguments; received %i." % len(args))
 
     return margin[0], margin[1], margin[3], margin[4]

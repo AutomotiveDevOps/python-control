@@ -1,14 +1,15 @@
-from setuptools import setup, find_packages
+from setuptools import find_packages
+from setuptools import setup
 
 ver = {}
 try:
-    with open('control/_version.py') as fd:
+    with open("control/_version.py") as fd:
         exec(fd.read(), ver)
-    version = ver.get('__version__', 'dev')
-except IOError:
-    version = 'dev'
+    version = ver.get("__version__", "dev")
+except OSError:
+    version = "dev"
 
-with open('README.rst') as fp:
+with open("README.rst") as fp:
     long_description = fp.read()
 
 CLASSIFIERS = """
@@ -32,19 +33,15 @@ Operating System :: MacOS
 """
 
 setup(
-    name='control',
+    name="control",
     version=version,
-    author='Python Control Developers',
-    author_email='python-control-developers@lists.sourceforge.net',
-    url='http://python-control.org',
-    description='Python Control Systems Library',
+    author="Python Control Developers",
+    author_email="python-control-developers@lists.sourceforge.net",
+    url="http://python-control.org",
+    description="Python Control Systems Library",
     long_description=long_description,
     packages=find_packages(),
-    classifiers=[f for f in CLASSIFIERS.split('\n') if f],
-    install_requires=['numpy',
-                      'scipy',
-                      'matplotlib'],
-    extras_require={
-       'test': ['pytest', 'pytest-timeout'],
-    }
+    classifiers=[f for f in CLASSIFIERS.split("\n") if f],
+    install_requires=["numpy", "scipy", "matplotlib"],
+    extras_require={"test": ["pytest", "pytest-timeout"],},
 )

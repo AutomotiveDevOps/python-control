@@ -11,15 +11,31 @@ isctime()
 timebase()
 common_timebase()
 """
+from warnings import warn
 
 import numpy as np
-from numpy import absolute, real, angle, abs
-from warnings import warn
+from numpy import abs
+from numpy import absolute
+from numpy import angle
+from numpy import real
+
 from . import config
 
-__all__ = ['issiso', 'timebase', 'common_timebase', 'timebaseEqual',
-           'isdtime', 'isctime', 'pole', 'zero', 'damp', 'evalfr',
-           'freqresp', 'dcgain']
+__all__ = [
+    "issiso",
+    "timebase",
+    "common_timebase",
+    "timebaseEqual",
+    "isdtime",
+    "isctime",
+    "pole",
+    "zero",
+    "damp",
+    "evalfr",
+    "freqresp",
+    "dcgain",
+]
+
 
 class LTI:
     """LTI is a parent class to linear time-invariant (LTI) system objects.
@@ -61,30 +77,42 @@ class LTI:
 
     @property
     def inputs(self):
-        warn("The LTI `inputs` attribute will be deprecated in a future "
-             "release.  Use `ninputs` instead.",
-             DeprecationWarning, stacklevel=2)
+        warn(
+            "The LTI `inputs` attribute will be deprecated in a future "
+            "release.  Use `ninputs` instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return self.ninputs
 
     @inputs.setter
     def inputs(self, value):
-        warn("The LTI `inputs` attribute will be deprecated in a future "
-             "release.  Use `ninputs` instead.",
-             DeprecationWarning, stacklevel=2)
+        warn(
+            "The LTI `inputs` attribute will be deprecated in a future "
+            "release.  Use `ninputs` instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         self.ninputs = value
 
     @property
     def outputs(self):
-        warn("The LTI `outputs` attribute will be deprecated in a future "
-             "release.  Use `noutputs` instead.",
-             DeprecationWarning, stacklevel=2)
+        warn(
+            "The LTI `outputs` attribute will be deprecated in a future "
+            "release.  Use `noutputs` instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return self.noutputs
 
     @outputs.setter
     def outputs(self, value):
-        warn("The LTI `outputs` attribute will be deprecated in a future "
-             "release.  Use `noutputs` instead.",
-             DeprecationWarning, stacklevel=2)
+        warn(
+            "The LTI `outputs` attribute will be deprecated in a future "
+            "release.  Use `noutputs` instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         self.noutputs = value
 
     def isdtime(self, strict=False):
@@ -123,11 +151,11 @@ class LTI:
         return self.dt == 0
 
     def issiso(self):
-        '''Check to see if a system is single input, single output'''
+        """Check to see if a system is single input, single output"""
         return self.ninputs == 1 and self.noutputs == 1
 
     def damp(self):
-        '''Natural frequency, damping ratio of system poles
+        """Natural frequency, damping ratio of system poles
 
         Returns
         -------
@@ -137,15 +165,15 @@ class LTI:
             Damping ratio for each system pole
         poles : array
             Array of system poles
-        '''
+        """
         poles = self.pole()
 
         if isdtime(self, strict=True):
-            splane_poles = np.log(poles)/self.dt
+            splane_poles = np.log(poles) / self.dt
         else:
             splane_poles = poles
         wn = absolute(splane_poles)
-        Z = -real(splane_poles)/wn
+        Z = -real(splane_poles) / wn
         return wn, Z, poles
 
     def frequency_response(self, omega, squeeze=None):
@@ -205,8 +233,9 @@ class LTI:
 
     def dcgain(self):
         """Return the zero-frequency gain"""
-        raise NotImplementedError("dcgain not implemented for %s objects" %
-                                  str(self.__class__))
+        raise NotImplementedError(
+            "dcgain not implemented for %s objects" % str(self.__class__)
+        )
 
 
 # Test to see if a system is SISO
@@ -229,6 +258,7 @@ def issiso(sys, strict=False):
     # Done with the tricky stuff...
     return sys.issiso()
 
+
 # Return the timebase (with conversion if unspecified)
 def timebase(sys, strict=True):
     """Return the timebase for an LTI system
@@ -245,12 +275,13 @@ def timebase(sys, strict=True):
         raise ValueError("Timebase not defined")
 
     # Return the sample time, with converstion to float if strict is false
-    if (sys.dt == None):
+    if sys.dt == None:
         return None
-    elif (strict):
+    elif strict:
         return float(sys.dt)
 
     return sys.dt
+
 
 def common_timebase(dt1, dt2):
     """
@@ -277,9 +308,9 @@ def common_timebase(dt1, dt2):
     # if either dt is True (discrete with unspecified time base),
     #   use the timebase of the other, if it is also discrete
     # otherwise both dts must be equal
-    if hasattr(dt1, 'dt'):
+    if hasattr(dt1, "dt"):
         dt1 = dt1.dt
-    if hasattr(dt2, 'dt'):
+    if hasattr(dt2, "dt"):
         dt2 = dt2.dt
 
     if dt1 is None:
@@ -301,6 +332,7 @@ def common_timebase(dt1, dt2):
     else:
         raise ValueError("Systems have incompatible timebases")
 
+
 # Check to see if two timebases are equal
 def timebaseEqual(sys1, sys2):
     """
@@ -313,14 +345,16 @@ def timebaseEqual(sys1, sys2):
     discrete or continuous timebase systems.  If two systems have a discrete
     timebase (dt > 0) then their timebases must be equal.
     """
-    warn("timebaseEqual will be deprecated in a future release of "
-         "python-control; use :func:`common_timebase` instead",
-         PendingDeprecationWarning)
+    warn(
+        "timebaseEqual will be deprecated in a future release of "
+        "python-control; use :func:`common_timebase` instead",
+        PendingDeprecationWarning,
+    )
 
-    if (type(sys1.dt) == bool or type(sys2.dt) == bool):
+    if type(sys1.dt) == bool or type(sys2.dt) == bool:
         # Make sure both are unspecified discrete timebases
         return type(sys1.dt) == type(sys2.dt) and sys1.dt == sys2.dt
-    elif (sys1.dt is None or sys2.dt is None):
+    elif sys1.dt is None or sys2.dt is None:
         # One or the other is unspecified => the other can be anything
         return True
     else:
@@ -350,7 +384,7 @@ def isdtime(sys, strict=False):
         return sys.isdtime(strict)
 
     # Check to see if object has a dt object
-    if hasattr(sys, 'dt'):
+    if hasattr(sys, "dt"):
         # If no timebase is given, answer depends on strict flag
         if sys.dt == None:
             return True if not strict else False
@@ -360,6 +394,7 @@ def isdtime(sys, strict=False):
 
     # Got passed something we don't recognize
     return False
+
 
 # Check to see if a system is a continuous time system
 def isctime(sys, strict=False):
@@ -384,7 +419,7 @@ def isctime(sys, strict=False):
         return sys.isctime(strict)
 
     # Check to see if object has a dt object
-    if hasattr(sys, 'dt'):
+    if hasattr(sys, "dt"):
         # If no timebase is given, answer depends on strict flag
         if sys.dt is None:
             return True if not strict else False
@@ -392,6 +427,7 @@ def isctime(sys, strict=False):
 
     # Got passed something we don't recognize
     return False
+
 
 def pole(sys):
     """
@@ -452,6 +488,7 @@ def zero(sys):
 
     return sys.zero()
 
+
 def damp(sys, doprint=True):
     """
     Compute natural frequency, damping ratio, and poles of a system
@@ -496,15 +533,16 @@ def damp(sys, doprint=True):
     """
     wn, damping, poles = sys.damp()
     if doprint:
-        print('_____Eigenvalue______ Damping___ Frequency_')
-        for p, d, w in zip(poles, damping, wn) :
+        print("_____Eigenvalue______ Damping___ Frequency_")
+        for p, d, w in zip(poles, damping, wn):
             if abs(p.imag) < 1e-12:
-                print("%10.4g            %10.4g %10.4g" %
-                      (p.real, 1.0, -p.real))
+                print(
+                    "{:10.4g}            {:10.4g} {:10.4g}".format(p.real, 1.0, -p.real)
+                )
             else:
-                print("%10.4g%+10.4gj %10.4g %10.4g" %
-                      (p.real, p.imag, d, w))
+                print(f"{p.real:10.4g}{p.imag:+10.4g}j {d:10.4g} {w:10.4g}")
     return wn, damping, poles
+
 
 def evalfr(sys, x, squeeze=None):
     """Evaluate the transfer function of an LTI system for complex frequency x.
@@ -563,6 +601,7 @@ def evalfr(sys, x, squeeze=None):
 
     """
     return sys.__call__(x, squeeze=squeeze)
+
 
 def freqresp(sys, omega, squeeze=None):
     """Frequency response of an LTI system at multiple angular frequencies.
@@ -654,9 +693,9 @@ def dcgain(sys):
 def _process_frequency_response(sys, omega, out, squeeze=None):
     # Set value of squeeze argument if not set
     if squeeze is None:
-        squeeze = config.defaults['control.squeeze_frequency_response']
+        squeeze = config.defaults["control.squeeze_frequency_response"]
 
-    if not hasattr(omega, '__len__'):
+    if not hasattr(omega, "__len__"):
         # received a scalar x, squeeze down the array along last dim
         out = np.squeeze(out, axis=2)
 

@@ -1,8 +1,8 @@
-sphinx>=3.4
-numpy
-scipy
-matplotlib
-sphinx_rtd_theme
-numpydoc
 ipykernel
+matplotlib
 nbsphinx
+numpy
+numpydoc
+scipy
+sphinx>=3.4
+sphinx_rtd_theme

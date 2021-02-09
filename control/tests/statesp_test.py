@@ -6,23 +6,31 @@ RMM, 14 Jun 2019 statesp_array_test.py coverted from statesp_test.py to test
 BG,  26 Jul 2020 merge statesp_array_test.py differences into statesp_test.py
                  convert to pytest
 """
+import operator
 
 import numpy as np
 import pytest
-import operator
 from numpy.linalg import solve
-from scipy.linalg import block_diag, eigvals
+from scipy.linalg import block_diag
+from scipy.linalg import eigvals
 
 import control as ct
+from .conftest import editsdefaults
 from control.config import defaults
 from control.dtime import sample_system
 from control.lti import evalfr
-from control.statesp import (StateSpace, _convert_to_statespace, drss,
-                             rss, ss, tf2ss, _statesp_defaults)
-from control.tests.conftest import ismatarrayout, slycotonly
-from control.xferfcn import TransferFunction, ss2tf
+from control.statesp import _convert_to_statespace
+from control.statesp import _statesp_defaults
+from control.statesp import drss
+from control.statesp import rss
+from control.statesp import ss
+from control.statesp import StateSpace
+from control.statesp import tf2ss
+from control.tests.conftest import ismatarrayout
+from control.tests.conftest import slycotonly
+from control.xferfcn import ss2tf
+from control.xferfcn import TransferFunction
 
-from .conftest import editsdefaults
 
 class TestStateSpace:
     """Tests for the StateSpace class."""
@@ -30,16 +38,10 @@ class TestStateSpace:
     @pytest.fixture
     def sys322ABCD(self):
         """Matrices for sys322"""
-        A322 = [[-3., 4., 2.],
-                [-1., -3., 0.],
-                [2., 5., 3.]]
-        B322 = [[1., 4.],
-                [-3., -3.],
-                [-2., 1.]]
-        C322 = [[4., 2., -3.],
-                [1., 4., 3.]]
-        D322 = [[-2., 4.],
-                [0., 1.]]
+        A322 = [[-3.0, 4.0, 2.0], [-1.0, -3.0, 0.0], [2.0, 5.0, 3.0]]
+        B322 = [[1.0, 4.0], [-3.0, -3.0], [-2.0, 1.0]]
+        C322 = [[4.0, 2.0, -3.0], [1.0, 4.0, 3.0]]
+        D322 = [[-2.0, 4.0], [0.0, 1.0]]
         return (A322, B322, C322, D322)
 
     @pytest.fixture
@@ -50,85 +52,90 @@ class TestStateSpace:
     @pytest.fixture
     def sys222(self):
         """2-states square system (2 inputs x 2 outputs)"""
-        A222 = [[4., 1.],
-                [2., -3]]
-        B222 = [[5., 2.],
-                [-3., -3.]]
-        C222 = [[2., -4],
-                [0., 1.]]
-        D222 = [[3., 2.],
-                [1., -1.]]
+        A222 = [[4.0, 1.0], [2.0, -3]]
+        B222 = [[5.0, 2.0], [-3.0, -3.0]]
+        C222 = [[2.0, -4], [0.0, 1.0]]
+        D222 = [[3.0, 2.0], [1.0, -1.0]]
         return StateSpace(A222, B222, C222, D222)
 
     @pytest.fixture
     def sys623(self):
         """sys3: 6 states non square system (2 inputs x 3 outputs)"""
-        A623 = np.array([[1, 0, 0, 0, 0, 0],
-                         [0, 1, 0, 0, 0, 0],
-                         [0, 0, 3, 0, 0, 0],
-                         [0, 0, 0, -4, 0, 0],
-                         [0, 0, 0, 0, -1, 0],
-                         [0, 0, 0, 0, 0, 3]])
-        B623 = np.array([[0, -1],
-                        [-1, 0],
-                        [1, -1],
-                        [0, 0],
-                        [0, 1],
-                        [-1, -1]])
-        C623 = np.array([[1, 0, 0, 1, 0, 0],
-                         [0, 1, 0, 1, 0, 1],
-                         [0, 0, 1, 0, 0, 1]])
+        A623 = np.array(
+            [
+                [1, 0, 0, 0, 0, 0],
+                [0, 1, 0, 0, 0, 0],
+                [0, 0, 3, 0, 0, 0],
+                [0, 0, 0, -4, 0, 0],
+                [0, 0, 0, 0, -1, 0],
+                [0, 0, 0, 0, 0, 3],
+            ]
+        )
+        B623 = np.array([[0, -1], [-1, 0], [1, -1], [0, 0], [0, 1], [-1, -1]])
+        C623 = np.array([[1, 0, 0, 1, 0, 0], [0, 1, 0, 1, 0, 1], [0, 0, 1, 0, 0, 1]])
         D623 = np.zeros((3, 2))
         return StateSpace(A623, B623, C623, D623)
 
     @pytest.mark.parametrize(
         "dt",
-        [(), (None, ), (0, ), (1, ), (0.1, ), (True, )],
-        ids=lambda i: "dt " + ("unspec" if len(i) == 0 else str(i[0])))
+        [(), (None,), (0,), (1,), (0.1,), (True,)],
+        ids=lambda i: "dt " + ("unspec" if len(i) == 0 else str(i[0])),
+    )
     @pytest.mark.parametrize(
         "argfun",
-        [pytest.param(
-            lambda ABCDdt: (ABCDdt, {}),
-            id="A, B, C, D[, dt]"),
-         pytest.param(
-            lambda ABCDdt: (ABCDdt[:4], {'dt': dt_ for dt_ in ABCDdt[4:]}),
-            id="A, B, C, D[, dt=dt]"),
-         pytest.param(
-             lambda ABCDdt: ((StateSpace(*ABCDdt), ), {}),
-             id="sys")
-         ])
+        [
+            pytest.param(lambda ABCDdt: (ABCDdt, {}), id="A, B, C, D[, dt]"),
+            pytest.param(
+                lambda ABCDdt: (ABCDdt[:4], {"dt": dt_ for dt_ in ABCDdt[4:]}),
+                id="A, B, C, D[, dt=dt]",
+            ),
+            pytest.param(lambda ABCDdt: ((StateSpace(*ABCDdt),), {}), id="sys"),
+        ],
+    )
     def test_constructor(self, sys322ABCD, dt, argfun):
         """Test different ways to call the StateSpace() constructor"""
         args, kwargs = argfun(sys322ABCD + dt)
         sys = StateSpace(*args, **kwargs)
 
-        dtref = defaults['control.default_dt'] if len(dt) == 0 else dt[0]
+        dtref = defaults["control.default_dt"] if len(dt) == 0 else dt[0]
         np.testing.assert_almost_equal(sys.A, sys322ABCD[0])
         np.testing.assert_almost_equal(sys.B, sys322ABCD[1])
         np.testing.assert_almost_equal(sys.C, sys322ABCD[2])
         np.testing.assert_almost_equal(sys.D, sys322ABCD[3])
         assert sys.dt == dtref
 
-    @pytest.mark.parametrize("args, exc, errmsg",
-                             [((True, ), TypeError,
-                               "(can only take in|sys must be) a StateSpace"),
-                              ((1, 2), ValueError, "1, 4, or 5 arguments"),
-                              ((np.ones((3, 2)), np.ones((3, 2)),
-                                np.ones((2, 2)), np.ones((2, 2))),
-                               ValueError, "A must be square"),
-                              ((np.ones((3, 3)), np.ones((2, 2)),
-                                np.ones((2, 3)), np.ones((2, 2))),
-                               ValueError, "A and B"),
-                              ((np.ones((3, 3)), np.ones((3, 2)),
-                                np.ones((2, 2)), np.ones((2, 2))),
-                               ValueError, "A and C"),
-                              ((np.ones((3, 3)), np.ones((3, 2)),
-                                np.ones((2, 3)), np.ones((2, 3))),
-                               ValueError, "B and D"),
-                              ((np.ones((3, 3)), np.ones((3, 2)),
-                                np.ones((2, 3)), np.ones((3, 2))),
-                               ValueError, "C and D"),
-                              ])
+    @pytest.mark.parametrize(
+        "args, exc, errmsg",
+        [
+            ((True,), TypeError, "(can only take in|sys must be) a StateSpace"),
+            ((1, 2), ValueError, "1, 4, or 5 arguments"),
+            (
+                (np.ones((3, 2)), np.ones((3, 2)), np.ones((2, 2)), np.ones((2, 2))),
+                ValueError,
+                "A must be square",
+            ),
+            (
+                (np.ones((3, 3)), np.ones((2, 2)), np.ones((2, 3)), np.ones((2, 2))),
+                ValueError,
+                "A and B",
+            ),
+            (
+                (np.ones((3, 3)), np.ones((3, 2)), np.ones((2, 2)), np.ones((2, 2))),
+                ValueError,
+                "A and C",
+            ),
+            (
+                (np.ones((3, 3)), np.ones((3, 2)), np.ones((2, 3)), np.ones((2, 3))),
+                ValueError,
+                "B and D",
+            ),
+            (
+                (np.ones((3, 3)), np.ones((3, 2)), np.ones((2, 3)), np.ones((3, 2))),
+                ValueError,
+                "C and D",
+            ),
+        ],
+    )
     def test_constructor_invalid(self, args, exc, errmsg):
         """Test invalid input to StateSpace() constructor"""
         with pytest.raises(exc, match=errmsg):
@@ -139,7 +146,7 @@ class TestStateSpace:
     def test_constructor_warns(self, sys322ABCD):
         """Test ambiguos input to StateSpace() constructor"""
         with pytest.warns(UserWarning, match="received multiple dt"):
-            sys = StateSpace(*(sys322ABCD + (0.1, )), dt=0.2)
+            sys = StateSpace(*(sys322ABCD + (0.1,)), dt=0.2)
             np.testing.assert_almost_equal(sys.A, sys322ABCD[0])
         np.testing.assert_almost_equal(sys.B, sys322ABCD[1])
         np.testing.assert_almost_equal(sys.C, sys322ABCD[2])
@@ -169,13 +176,13 @@ class TestStateSpace:
 
     def test_copy_constructor_nodt(self, sys322):
         """Test the copy constructor when an object without dt is passed"""
-        sysin = sample_system(sys322, 1.)
+        sysin = sample_system(sys322, 1.0)
         del sysin.dt
         sys = StateSpace(sysin)
-        assert sys.dt == defaults['control.default_dt']
+        assert sys.dt == defaults["control.default_dt"]
 
         # test for static gain
-        sysin = StateSpace([], [], [], [[1, 2], [3, 4]], 1.)
+        sysin = StateSpace([], [], [], [[1, 2], [3, 4]], 1.0)
         del sysin.dt
         sys = StateSpace(sysin)
         assert sys.dt is None
@@ -218,9 +225,13 @@ class TestStateSpace:
         """Evaluate the poles of a MIMO system."""
 
         p = np.sort(sys322.pole())
-        true_p = np.sort([3.34747678408874,
-                          -3.17373839204437 + 1.47492908003839j,
-                          -3.17373839204437 - 1.47492908003839j])
+        true_p = np.sort(
+            [
+                3.34747678408874,
+                -3.17373839204437 + 1.47492908003839j,
+                -3.17373839204437 - 1.47492908003839j,
+            ]
+        )
 
         np.testing.assert_array_almost_equal(p, true_p)
 
@@ -258,7 +269,7 @@ class TestStateSpace:
         """Evaluate the zeros of a square MIMO system."""
 
         z = np.sort(sys222.zero())
-        true_z = np.sort([-10.568501,   3.368501])
+        true_z = np.sort([-10.568501, 3.368501])
         np.testing.assert_array_almost_equal(z, true_z)
 
     @slycotonly
@@ -266,17 +277,22 @@ class TestStateSpace:
         """Evaluate the zeros of a non square MIMO system."""
 
         z = np.sort(sys623.zero())
-        true_z = np.sort([2., -1.])
+        true_z = np.sort([2.0, -1.0])
         np.testing.assert_array_almost_equal(z, true_z)
 
     def test_add_ss(self, sys222, sys322):
         """Add two MIMO systems."""
 
-        A = [[-3., 4., 2., 0., 0.], [-1., -3., 0., 0., 0.],
-             [2., 5., 3., 0., 0.], [0., 0., 0., 4., 1.], [0., 0., 0., 2., -3.]]
-        B = [[1., 4.], [-3., -3.], [-2., 1.], [5., 2.], [-3., -3.]]
-        C = [[4., 2., -3., 2., -4.], [1., 4., 3., 0., 1.]]
-        D = [[1., 6.], [1., 0.]]
+        A = [
+            [-3.0, 4.0, 2.0, 0.0, 0.0],
+            [-1.0, -3.0, 0.0, 0.0, 0.0],
+            [2.0, 5.0, 3.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 4.0, 1.0],
+            [0.0, 0.0, 0.0, 2.0, -3.0],
+        ]
+        B = [[1.0, 4.0], [-3.0, -3.0], [-2.0, 1.0], [5.0, 2.0], [-3.0, -3.0]]
+        C = [[4.0, 2.0, -3.0, 2.0, -4.0], [1.0, 4.0, 3.0, 0.0, 1.0]]
+        D = [[1.0, 6.0], [1.0, 0.0]]
 
         sys = sys322 + sys222
 
@@ -288,11 +304,16 @@ class TestStateSpace:
     def test_subtract_ss(self, sys222, sys322):
         """Subtract two MIMO systems."""
 
-        A = [[-3., 4., 2., 0., 0.], [-1., -3., 0., 0., 0.],
-             [2., 5., 3., 0., 0.], [0., 0., 0., 4., 1.], [0., 0., 0., 2., -3.]]
-        B = [[1., 4.], [-3., -3.], [-2., 1.], [5., 2.], [-3., -3.]]
-        C = [[4., 2., -3., -2., 4.], [1., 4., 3., 0., -1.]]
-        D = [[-5., 2.], [-1., 2.]]
+        A = [
+            [-3.0, 4.0, 2.0, 0.0, 0.0],
+            [-1.0, -3.0, 0.0, 0.0, 0.0],
+            [2.0, 5.0, 3.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 4.0, 1.0],
+            [0.0, 0.0, 0.0, 2.0, -3.0],
+        ]
+        B = [[1.0, 4.0], [-3.0, -3.0], [-2.0, 1.0], [5.0, 2.0], [-3.0, -3.0]]
+        C = [[4.0, 2.0, -3.0, -2.0, 4.0], [1.0, 4.0, 3.0, 0.0, -1.0]]
+        D = [[-5.0, 2.0], [-1.0, 2.0]]
 
         sys = sys322 - sys222
 
@@ -304,11 +325,16 @@ class TestStateSpace:
     def test_multiply_ss(self, sys222, sys322):
         """Multiply two MIMO systems."""
 
-        A = [[4., 1., 0., 0., 0.], [2., -3., 0., 0., 0.], [2., 0., -3., 4., 2.],
-             [-6., 9., -1., -3., 0.], [-4., 9., 2., 5., 3.]]
-        B = [[5., 2.], [-3., -3.], [7., -2.], [-12., -3.], [-5., -5.]]
-        C = [[-4., 12., 4., 2., -3.], [0., 1., 1., 4., 3.]]
-        D = [[-2., -8.], [1., -1.]]
+        A = [
+            [4.0, 1.0, 0.0, 0.0, 0.0],
+            [2.0, -3.0, 0.0, 0.0, 0.0],
+            [2.0, 0.0, -3.0, 4.0, 2.0],
+            [-6.0, 9.0, -1.0, -3.0, 0.0],
+            [-4.0, 9.0, 2.0, 5.0, 3.0],
+        ]
+        B = [[5.0, 2.0], [-3.0, -3.0], [7.0, -2.0], [-12.0, -3.0], [-5.0, -5.0]]
+        C = [[-4.0, 12.0, 4.0, 2.0, -3.0], [0.0, 1.0, 1.0, 4.0, 3.0]]
+        D = [[-2.0, -8.0], [1.0, -1.0]]
 
         sys = sys322 * sys222
 
@@ -317,24 +343,42 @@ class TestStateSpace:
         np.testing.assert_array_almost_equal(sys.C, C)
         np.testing.assert_array_almost_equal(sys.D, D)
 
-    @pytest.mark.parametrize("omega, resp",
-                             [(1.,
-                               np.array([[ 4.37636761e-05-0.01522976j,
-                                          -7.92603939e-01+0.02617068j],
-                                         [-3.31544858e-01+0.0576105j,
-                                          1.28919037e-01-0.14382495j]])),
-                              (32,
-                               np.array([[-1.16548243e-05-3.13444825e-04j,
-                                          -7.99936828e-01+4.54201816e-06j],
-                                         [-3.00137118e-01+3.42881660e-03j,
-                                          6.32015038e-04-1.21462255e-02j]]))])
+    @pytest.mark.parametrize(
+        "omega, resp",
+        [
+            (
+                1.0,
+                np.array(
+                    [
+                        [4.37636761e-05 - 0.01522976j, -7.92603939e-01 + 0.02617068j],
+                        [-3.31544858e-01 + 0.0576105j, 1.28919037e-01 - 0.14382495j],
+                    ]
+                ),
+            ),
+            (
+                32,
+                np.array(
+                    [
+                        [
+                            -1.16548243e-05 - 3.13444825e-04j,
+                            -7.99936828e-01 + 4.54201816e-06j,
+                        ],
+                        [
+                            -3.00137118e-01 + 3.42881660e-03j,
+                            6.32015038e-04 - 1.21462255e-02j,
+                        ],
+                    ]
+                ),
+            ),
+        ],
+    )
     @pytest.mark.parametrize("dt", [None, 0, 1e-3])
     def test_call(self, dt, omega, resp):
         """Evaluate the frequency response at single frequencies"""
         A = [[-2, 0.5], [0.5, -0.3]]
-        B = [[0.3, -1.3], [0.1, 0.]]
-        C = [[0., 0.1], [-0.3, -0.2]]
-        D = [[0., -0.8], [-0.3, 0.]]
+        B = [[0.3, -1.3], [0.1, 0.0]]
+        C = [[0.0, 0.1], [-0.3, -0.2]]
+        D = [[0.0, -0.8], [-0.3, 0.0]]
         sys = StateSpace(A, B, C, D)
 
         if dt:
@@ -351,26 +395,37 @@ class TestStateSpace:
         with pytest.raises(AttributeError):
             sys.evalfr(omega)
 
-
     @slycotonly
     def test_freq_resp(self):
         """Evaluate the frequency response at multiple frequencies."""
 
         A = [[-2, 0.5], [0.5, -0.3]]
-        B = [[0.3, -1.3], [0.1, 0.]]
-        C = [[0., 0.1], [-0.3, -0.2]]
-        D = [[0., -0.8], [-0.3, 0.]]
+        B = [[0.3, -1.3], [0.1, 0.0]]
+        C = [[0.0, 0.1], [-0.3, -0.2]]
+        D = [[0.0, -0.8], [-0.3, 0.0]]
         sys = StateSpace(A, B, C, D)
 
-        true_mag = [[[0.0852992637230322, 0.00103596611395218],
-                    [0.935374692849736, 0.799380720864549]],
-                   [[0.55656854563842, 0.301542699860857],
-                    [0.609178071542849, 0.0382108097985257]]]
-        true_phase = [[[-0.566195599644593, -1.68063565332582],
-                      [3.0465958317514, 3.14141384339534]],
-                     [[2.90457947657161, 3.10601268291914],
-                      [-0.438157380501337, -1.40720969147217]]]
-        true_omega = [0.1, 10.]
+        true_mag = [
+            [
+                [0.0852992637230322, 0.00103596611395218],
+                [0.935374692849736, 0.799380720864549],
+            ],
+            [
+                [0.55656854563842, 0.301542699860857],
+                [0.609178071542849, 0.0382108097985257],
+            ],
+        ]
+        true_phase = [
+            [
+                [-0.566195599644593, -1.68063565332582],
+                [3.0465958317514, 3.14141384339534],
+            ],
+            [
+                [2.90457947657161, 3.10601268291914],
+                [-0.438157380501337, -1.40720969147217],
+            ],
+        ]
+        true_omega = [0.1, 10.0]
 
         mag, phase, omega = sys.frequency_response(true_omega)
 
@@ -384,16 +439,16 @@ class TestStateSpace:
             np.testing.assert_almost_equal(mag, true_mag)
 
     def test__isstatic(self):
-        A0 = np.zeros((2,2))
+        A0 = np.zeros((2, 2))
         A1 = A0.copy()
-        A1[0,1] = 1.1
-        B0 = np.zeros((2,1))
+        A1[0, 1] = 1.1
+        B0 = np.zeros((2, 1))
         B1 = B0.copy()
-        B1[0,0] = 1.3
+        B1[0, 0] = 1.3
         C0 = A0
         C1 = np.eye(2)
         D0 = 0
-        D1 = np.ones((2,1))
+        D1 = np.ones((2, 1))
         assert StateSpace(A0, B0, C1, D1)._isstatic()
         assert not StateSpace(A1, B0, C1, D1)._isstatic()
         assert not StateSpace(A0, B1, C1, D1)._isstatic()
@@ -408,11 +463,11 @@ class TestStateSpace:
         # A = [-2, 0.5, 0; 0.5, -0.3, 0; 0, 0, -0.1]
         A = [[-2, 0.5, 0], [0.5, -0.3, 0], [0, 0, -0.1]]
         # B = [0.3, -1.3; 0.1, 0; 1, 0]
-        B = [[0.3, -1.3], [0.1, 0.], [1.0, 0.0]]
+        B = [[0.3, -1.3], [0.1, 0.0], [1.0, 0.0]]
         # C = [0, 0.1, 0; -0.3, -0.2, 0]
-        C = [[0., 0.1, 0.0], [-0.3, -0.2, 0.0]]
+        C = [[0.0, 0.1, 0.0], [-0.3, -0.2, 0.0]]
         # D = [0 -0.8; -0.3 0]
-        D = [[0., -0.8], [-0.3, 0.]]
+        D = [[0.0, -0.8], [-0.3, 0.0]]
         # sys = ss(A, B, C, D)
 
         sys = StateSpace(A, B, C, D)
@@ -420,24 +475,22 @@ class TestStateSpace:
         assert sysr.nstates == 2
         assert sysr.ninputs == sys.ninputs
         assert sysr.noutputs == sys.noutputs
-        np.testing.assert_array_almost_equal(
-            eigvals(sysr.A), [-2.136154, -0.1638459])
+        np.testing.assert_array_almost_equal(eigvals(sysr.A), [-2.136154, -0.1638459])
 
     def test_append_ss(self):
         """Test appending two state-space systems."""
         A1 = [[-2, 0.5, 0], [0.5, -0.3, 0], [0, 0, -0.1]]
-        B1 = [[0.3, -1.3], [0.1, 0.], [1.0, 0.0]]
-        C1 = [[0., 0.1, 0.0], [-0.3, -0.2, 0.0]]
-        D1 = [[0., -0.8], [-0.3, 0.]]
-        A2 = [[-1.]]
+        B1 = [[0.3, -1.3], [0.1, 0.0], [1.0, 0.0]]
+        C1 = [[0.0, 0.1, 0.0], [-0.3, -0.2, 0.0]]
+        D1 = [[0.0, -0.8], [-0.3, 0.0]]
+        A2 = [[-1.0]]
         B2 = [[1.2]]
         C2 = [[0.5]]
         D2 = [[0.4]]
-        A3 = [[-2, 0.5, 0, 0], [0.5, -0.3, 0, 0], [0, 0, -0.1, 0],
-              [0, 0, 0., -1.]]
-        B3 = [[0.3, -1.3, 0], [0.1, 0., 0], [1.0, 0.0, 0], [0., 0, 1.2]]
-        C3 = [[0., 0.1, 0.0, 0.0], [-0.3, -0.2, 0.0, 0.0], [0., 0., 0., 0.5]]
-        D3 = [[0., -0.8, 0.], [-0.3, 0., 0.], [0., 0., 0.4]]
+        A3 = [[-2, 0.5, 0, 0], [0.5, -0.3, 0, 0], [0, 0, -0.1, 0], [0, 0, 0.0, -1.0]]
+        B3 = [[0.3, -1.3, 0], [0.1, 0.0, 0], [1.0, 0.0, 0], [0.0, 0, 1.2]]
+        C3 = [[0.0, 0.1, 0.0, 0.0], [-0.3, -0.2, 0.0, 0.0], [0.0, 0.0, 0.0, 0.5]]
+        D3 = [[0.0, -0.8, 0.0], [-0.3, 0.0, 0.0], [0.0, 0.0, 0.4]]
         sys1 = StateSpace(A1, B1, C1, D1)
         sys2 = StateSpace(A2, B2, C2, D2)
         sys3 = StateSpace(A3, B3, C3, D3)
@@ -450,9 +503,9 @@ class TestStateSpace:
     def test_append_tf(self):
         """Test appending a state-space system with a tf"""
         A1 = [[-2, 0.5, 0], [0.5, -0.3, 0], [0, 0, -0.1]]
-        B1 = [[0.3, -1.3], [0.1, 0.], [1.0, 0.0]]
-        C1 = [[0., 0.1, 0.0], [-0.3, -0.2, 0.0]]
-        D1 = [[0., -0.8], [-0.3, 0.]]
+        B1 = [[0.3, -1.3], [0.1, 0.0], [1.0, 0.0]]
+        C1 = [[0.0, 0.1, 0.0], [-0.3, -0.2, 0.0]]
+        D1 = [[0.0, -0.8], [-0.3, 0.0]]
         s = TransferFunction([1, 0], [1])
         h = 1 / (s + 1) / (s + 2)
         sys1 = StateSpace(A1, B1, C1, D1)
@@ -471,33 +524,32 @@ class TestStateSpace:
 
     def test_array_access_ss(self):
 
-        sys1 = StateSpace([[1., 2.], [3., 4.]],
-                          [[5., 6.], [6., 8.]],
-                          [[9., 10.], [11., 12.]],
-                          [[13., 14.], [15., 16.]], 1)
+        sys1 = StateSpace(
+            [[1.0, 2.0], [3.0, 4.0]],
+            [[5.0, 6.0], [6.0, 8.0]],
+            [[9.0, 10.0], [11.0, 12.0]],
+            [[13.0, 14.0], [15.0, 16.0]],
+            1,
+        )
 
         sys1_11 = sys1[0, 1]
-        np.testing.assert_array_almost_equal(sys1_11.A,
-                                             sys1.A)
-        np.testing.assert_array_almost_equal(sys1_11.B,
-                                             sys1.B[:, 1:2])
-        np.testing.assert_array_almost_equal(sys1_11.C,
-                                             sys1.C[0:1, :])
-        np.testing.assert_array_almost_equal(sys1_11.D,
-                                             sys1.D[0, 1])
+        np.testing.assert_array_almost_equal(sys1_11.A, sys1.A)
+        np.testing.assert_array_almost_equal(sys1_11.B, sys1.B[:, 1:2])
+        np.testing.assert_array_almost_equal(sys1_11.C, sys1.C[0:1, :])
+        np.testing.assert_array_almost_equal(sys1_11.D, sys1.D[0, 1])
 
         assert sys1.dt == sys1_11.dt
 
     def test_dc_gain_cont(self):
         """Test DC gain for continuous-time state-space systems."""
-        sys = StateSpace(-2., 6., 5., 0)
-        np.testing.assert_allclose(sys.dcgain(), 15.)
+        sys = StateSpace(-2.0, 6.0, 5.0, 0)
+        np.testing.assert_allclose(sys.dcgain(), 15.0)
 
-        sys2 = StateSpace(-2, [6., 4.], [[5.], [7.], [11]], np.zeros((3, 2)))
-        expected = np.array([[15., 10.], [21., 14.], [33., 22.]])
+        sys2 = StateSpace(-2, [6.0, 4.0], [[5.0], [7.0], [11]], np.zeros((3, 2)))
+        expected = np.array([[15.0, 10.0], [21.0, 14.0], [33.0, 22.0]])
         np.testing.assert_allclose(sys2.dcgain(), expected)
 
-        sys3 = StateSpace(0., 1., 1., 0.)
+        sys3 = StateSpace(0.0, 1.0, 1.0, 0.0)
         np.testing.assert_equal(sys3.dcgain(), np.nan)
 
     def test_dc_gain_discr(self):
@@ -520,8 +572,9 @@ class TestStateSpace:
 
     @pytest.mark.parametrize("outputs", range(1, 6))
     @pytest.mark.parametrize("inputs", range(1, 6))
-    @pytest.mark.parametrize("dt", [None, 0, 1, True],
-                             ids=["dtNone", "c", "dt1", "dtTrue"])
+    @pytest.mark.parametrize(
+        "dt", [None, 0, 1, True], ids=["dtNone", "c", "dt1", "dtTrue"]
+    )
     def test_dc_gain_integrator(self, outputs, inputs, dt):
         """DC gain when eigenvalue at DC returns appropriately sized array of nan.
 
@@ -556,7 +609,7 @@ class TestStateSpace:
         g4 = g1 + g2
         assert 5 == g4.D[0, 0]
         g5 = g1.feedback(g2)
-        np.testing.assert_allclose(2. / 7, g5.D[0, 0])
+        np.testing.assert_allclose(2.0 / 7, g5.D[0, 0])
         g6 = g1.append(g2)
         np.testing.assert_allclose(np.diag([2, 3]), g6.D)
 
@@ -578,34 +631,42 @@ class TestStateSpace:
         np.testing.assert_array_equal(d1 + d2.T, h2.D)
         h3 = g1.feedback(g2)
         np.testing.assert_array_almost_equal(
-            solve(np.eye(2) + np.dot(d1, d2), d1), h3.D)
+            solve(np.eye(2) + np.dot(d1, d2), d1), h3.D
+        )
         h4 = g1.append(g2)
         np.testing.assert_array_equal(block_diag(d1, d2), h4.D)
 
     def test_remove_useless_states(self):
         """Regression: _remove_useless_states gives correct ABC sizes."""
-        g1 = StateSpace(np.zeros((3, 3)), np.zeros((3, 4)),
-                        np.zeros((5, 3)), np.zeros((5, 4)),
-                        remove_useless_states=True)
+        g1 = StateSpace(
+            np.zeros((3, 3)),
+            np.zeros((3, 4)),
+            np.zeros((5, 3)),
+            np.zeros((5, 4)),
+            remove_useless_states=True,
+        )
         assert (0, 0) == g1.A.shape
         assert (0, 4) == g1.B.shape
         assert (5, 0) == g1.C.shape
         assert (5, 4) == g1.D.shape
         assert 0 == g1.nstates
 
-    @pytest.mark.parametrize("A, B, C, D",
-                             [([1], [], [], [1]),
-                              ([1], [1], [], [1]),
-                              ([1], [], [1], [1]),
-                              ([], [1], [], [1]),
-                              ([], [1], [1], [1]),
-                              ([], [], [1], [1]),
-                              ([1], [1], [1], [])])
+    @pytest.mark.parametrize(
+        "A, B, C, D",
+        [
+            ([1], [], [], [1]),
+            ([1], [1], [], [1]),
+            ([1], [], [1], [1]),
+            ([], [1], [], [1]),
+            ([], [1], [1], [1]),
+            ([], [], [1], [1]),
+            ([1], [1], [1], []),
+        ],
+    )
     def test_bad_empty_matrices(self, A, B, C, D):
         """Mismatched ABCD matrices when some are empty."""
         with pytest.raises(ValueError):
             StateSpace(A, B, C, D)
-
 
     def test_minreal_static_gain(self):
         """Regression: minreal on static gain was failing."""
@@ -637,34 +698,57 @@ class TestStateSpace:
     def test_lft(self):
         """ test lft function with result obtained from matlab implementation"""
         # test case
-        A = [[1, 2, 3],
-             [1, 4, 5],
-             [2, 3, 4]]
-        B = [[0, 2],
-             [5, 6],
-             [5, 2]]
-        C = [[1, 4, 5],
-             [2, 3, 0]]
-        D = [[0, 0],
-             [3, 0]]
+        A = [[1, 2, 3], [1, 4, 5], [2, 3, 4]]
+        B = [[0, 2], [5, 6], [5, 2]]
+        C = [[1, 4, 5], [2, 3, 0]]
+        D = [[0, 0], [3, 0]]
         P = StateSpace(A, B, C, D)
-        Ak = [[0, 2, 3],
-              [2, 3, 5],
-              [2, 1, 9]]
-        Bk = [[1, 1],
-              [2, 3],
-              [9, 4]]
-        Ck = [[1, 4, 5],
-              [2, 3, 6]]
-        Dk = [[0, 2],
-              [0, 0]]
+        Ak = [[0, 2, 3], [2, 3, 5], [2, 1, 9]]
+        Bk = [[1, 1], [2, 3], [9, 4]]
+        Ck = [[1, 4, 5], [2, 3, 6]]
+        Dk = [[0, 2], [0, 0]]
         K = StateSpace(Ak, Bk, Ck, Dk)
 
         # case 1
         pk = P.lft(K, 2, 1)
-        Amatlab = [1, 2, 3, 4, 6, 12, 1, 4, 5, 17, 38, 61, 2, 3, 4, 9, 26, 37,
-                   2, 3, 0, 3, 14, 18, 4, 6, 0, 8, 27, 35, 18, 27, 0, 29, 109,
-                   144]
+        Amatlab = [
+            1,
+            2,
+            3,
+            4,
+            6,
+            12,
+            1,
+            4,
+            5,
+            17,
+            38,
+            61,
+            2,
+            3,
+            4,
+            9,
+            26,
+            37,
+            2,
+            3,
+            0,
+            3,
+            14,
+            18,
+            4,
+            6,
+            0,
+            8,
+            27,
+            35,
+            18,
+            27,
+            0,
+            29,
+            109,
+            144,
+        ]
         Bmatlab = [0, 10, 10, 7, 15, 58]
         Cmatlab = [1, 4, 5, 0, 0, 0]
         Dmatlab = [0]
@@ -675,9 +759,44 @@ class TestStateSpace:
 
         # case 2
         pk = P.lft(K)
-        Amatlab = [1, 2, 3, 4, 6, 12, -3, -2, 5, 11, 14, 31, -2, -3, 4, 3, 2,
-                   7, 0.6, 3.4, 5, -0.6, -0.4, 0, 0.8, 6.2, 10, 0.2, -4.2,
-                   -4, 7.4, 33.6, 45, -0.4, -8.6, -3]
+        Amatlab = [
+            1,
+            2,
+            3,
+            4,
+            6,
+            12,
+            -3,
+            -2,
+            5,
+            11,
+            14,
+            31,
+            -2,
+            -3,
+            4,
+            3,
+            2,
+            7,
+            0.6,
+            3.4,
+            5,
+            -0.6,
+            -0.4,
+            0,
+            0.8,
+            6.2,
+            10,
+            0.2,
+            -4.2,
+            -4,
+            7.4,
+            33.6,
+            45,
+            -0.4,
+            -8.6,
+            -3,
+        ]
         Bmatlab = []
         Cmatlab = []
         Dmatlab = []
@@ -688,16 +807,19 @@ class TestStateSpace:
 
     def test_repr(self, sys322):
         """Test string representation"""
-        ref322 = "\n".join(["StateSpace(array([[-3.,  4.,  2.],",
-                            "       [-1., -3.,  0.],",
-                            "       [ 2.,  5.,  3.]]), array([[ 1.,  4.],",
-                            "       [-3., -3.],",
-                            "       [-2.,  1.]]), array([[ 4.,  2., -3.],",
-                            "       [ 1.,  4.,  3.]]), array([[-2.,  4.],",
-                            "       [ 0.,  1.]]){dt})"])
-        assert repr(sys322) == ref322.format(dt='')
-        sysd = StateSpace(sys322.A, sys322.B,
-                          sys322.C, sys322.D, 0.4)
+        ref322 = "\n".join(
+            [
+                "StateSpace(array([[-3.,  4.,  2.],",
+                "       [-1., -3.,  0.],",
+                "       [ 2.,  5.,  3.]]), array([[ 1.,  4.],",
+                "       [-3., -3.],",
+                "       [-2.,  1.]]), array([[ 4.,  2., -3.],",
+                "       [ 1.,  4.,  3.]]), array([[-2.,  4.],",
+                "       [ 0.,  1.]]){dt})",
+            ]
+        )
+        assert repr(sys322) == ref322.format(dt="")
+        sysd = StateSpace(sys322.A, sys322.B, sys322.C, sys322.D, 0.4)
         assert repr(sysd), ref322.format(dt=" == 0.4")
         array = np.array  # noqa
         sysd2 = eval(repr(sysd))
@@ -709,40 +831,45 @@ class TestStateSpace:
     def test_str(self, sys322):
         """Test that printing the system works"""
         tsys = sys322
-        tref = ("A = [[-3.  4.  2.]\n"
-                "     [-1. -3.  0.]\n"
-                "     [ 2.  5.  3.]]\n"
-                "\n"
-                "B = [[ 1.  4.]\n"
-                "     [-3. -3.]\n"
-                "     [-2.  1.]]\n"
-                "\n"
-                "C = [[ 4.  2. -3.]\n"
-                "     [ 1.  4.  3.]]\n"
-                "\n"
-                "D = [[-2.  4.]\n"
-                "     [ 0.  1.]]\n")
+        tref = (
+            "A = [[-3.  4.  2.]\n"
+            "     [-1. -3.  0.]\n"
+            "     [ 2.  5.  3.]]\n"
+            "\n"
+            "B = [[ 1.  4.]\n"
+            "     [-3. -3.]\n"
+            "     [-2.  1.]]\n"
+            "\n"
+            "C = [[ 4.  2. -3.]\n"
+            "     [ 1.  4.  3.]]\n"
+            "\n"
+            "D = [[-2.  4.]\n"
+            "     [ 0.  1.]]\n"
+        )
         assert str(tsys) == tref
         tsysdtunspec = StateSpace(tsys.A, tsys.B, tsys.C, tsys.D, True)
         assert str(tsysdtunspec) == tref + "\ndt unspecified\n"
-        sysdt1 = StateSpace(tsys.A, tsys.B, tsys.C, tsys.D, 1.)
+        sysdt1 = StateSpace(tsys.A, tsys.B, tsys.C, tsys.D, 1.0)
         assert str(sysdt1) == tref + "\ndt = 1.0\n"
 
     def test_pole_static(self):
         """Regression: pole() of static gain is empty array."""
-        np.testing.assert_array_equal(np.array([]),
-                                      StateSpace([], [], [], [[1]]).pole())
+        np.testing.assert_array_equal(
+            np.array([]), StateSpace([], [], [], [[1]]).pole()
+        )
 
     def test_horner(self, sys322):
         """Test horner() function"""
         # Make sure we can compute the transfer function at a complex value
-        sys322.horner(1. + 1.j)
+        sys322.horner(1.0 + 1.0j)
 
         # Make sure result agrees with frequency response
         mag, phase, omega = sys322.frequency_response([1])
         np.testing.assert_array_almost_equal(
-            np.squeeze(sys322.horner(1.j)),
-            mag[:, :, 0] * np.exp(1.j * phase[:, :, 0]))
+            np.squeeze(sys322.horner(1.0j)),
+            mag[:, :, 0] * np.exp(1.0j * phase[:, :, 0]),
+        )
+
 
 class TestRss:
     """These are tests for the proper functionality of statesp.rss."""
@@ -752,9 +879,9 @@ class TestRss:
     # Maximum number of inputs and outputs to test + 1
     maxIO = 5
 
-    @pytest.mark.parametrize('states', range(1, maxStates))
-    @pytest.mark.parametrize('outputs', range(1, maxIO))
-    @pytest.mark.parametrize('inputs', range(1, maxIO))
+    @pytest.mark.parametrize("states", range(1, maxStates))
+    @pytest.mark.parametrize("outputs", range(1, maxIO))
+    @pytest.mark.parametrize("inputs", range(1, maxIO))
     def test_shape(self, states, outputs, inputs):
         """Test that rss outputs have the right state, input, and output size."""
         sys = rss(states, outputs, inputs)
@@ -762,9 +889,9 @@ class TestRss:
         assert sys.ninputs == inputs
         assert sys.noutputs == outputs
 
-    @pytest.mark.parametrize('states', range(1, maxStates))
-    @pytest.mark.parametrize('outputs', range(1, maxIO))
-    @pytest.mark.parametrize('inputs', range(1, maxIO))
+    @pytest.mark.parametrize("states", range(1, maxStates))
+    @pytest.mark.parametrize("outputs", range(1, maxIO))
+    @pytest.mark.parametrize("inputs", range(1, maxIO))
     def test_pole(self, states, outputs, inputs):
         """Test that the poles of rss outputs have a negative real part."""
         sys = rss(states, outputs, inputs)
@@ -781,9 +908,9 @@ class TestDrss:
     # Maximum number of inputs and outputs to test + 1
     maxIO = 5
 
-    @pytest.mark.parametrize('states', range(1, maxStates))
-    @pytest.mark.parametrize('outputs', range(1, maxIO))
-    @pytest.mark.parametrize('inputs', range(1, maxIO))
+    @pytest.mark.parametrize("states", range(1, maxStates))
+    @pytest.mark.parametrize("outputs", range(1, maxIO))
+    @pytest.mark.parametrize("inputs", range(1, maxIO))
     def test_shape(self, states, outputs, inputs):
         """Test that drss outputs have the right state, input, and output size."""
         sys = drss(states, outputs, inputs)
@@ -791,9 +918,9 @@ class TestDrss:
         assert sys.ninputs == inputs
         assert sys.noutputs == outputs
 
-    @pytest.mark.parametrize('states', range(1, maxStates))
-    @pytest.mark.parametrize('outputs', range(1, maxIO))
-    @pytest.mark.parametrize('inputs', range(1, maxIO))
+    @pytest.mark.parametrize("states", range(1, maxStates))
+    @pytest.mark.parametrize("outputs", range(1, maxIO))
+    @pytest.mark.parametrize("inputs", range(1, maxIO))
     def test_pole(self, states, outputs, inputs):
         """Test that the poles of drss outputs have less than unit magnitude."""
         sys = drss(states, outputs, inputs)
@@ -811,34 +938,25 @@ class TestLTIConverter:
         n = 5
         m = 3
         p = 2
-        bx, bu = np.mgrid[1:n + 1, 1:m + 1]
-        cy, cx = np.mgrid[1:p + 1, 1:n + 1]
-        dy, du = np.mgrid[1:p + 1, 1:m + 1]
-        return StateSpace(np.eye(5) + np.eye(5, 5, 1),
-                          bx * bu,
-                          cy * cx,
-                          dy * du,
-                          request.param)
+        bx, bu = np.mgrid[1 : n + 1, 1 : m + 1]
+        cy, cx = np.mgrid[1 : p + 1, 1 : n + 1]
+        dy, du = np.mgrid[1 : p + 1, 1 : m + 1]
+        return StateSpace(
+            np.eye(5) + np.eye(5, 5, 1), bx * bu, cy * cx, dy * du, request.param
+        )
 
-    @pytest.mark.parametrize("mimoss",
-                             [None,
-                              0,
-                              0.1,
-                              1,
-                              True],
-                             indirect=True)
+    @pytest.mark.parametrize("mimoss", [None, 0, 0.1, 1, True], indirect=True)
     def test_returnScipySignalLTI(self, mimoss):
         """Test returnScipySignalLTI method with strict=False"""
         sslti = mimoss.returnScipySignalLTI(strict=False)
         for i in range(mimoss.noutputs):
             for j in range(mimoss.ninputs):
                 np.testing.assert_allclose(sslti[i][j].A, mimoss.A)
-                np.testing.assert_allclose(sslti[i][j].B, mimoss.B[:,
-                                                                   j:j + 1])
-                np.testing.assert_allclose(sslti[i][j].C, mimoss.C[i:i + 1,
-                                                                   :])
-                np.testing.assert_allclose(sslti[i][j].D, mimoss.D[i:i + 1,
-                                                                   j:j + 1])
+                np.testing.assert_allclose(sslti[i][j].B, mimoss.B[:, j : j + 1])
+                np.testing.assert_allclose(sslti[i][j].C, mimoss.C[i : i + 1, :])
+                np.testing.assert_allclose(
+                    sslti[i][j].D, mimoss.D[i : i + 1, j : j + 1]
+                )
                 if mimoss.dt == 0:
                     assert sslti[i][j].dt is None
                 else:
@@ -864,47 +982,58 @@ class TestStateSpaceConfig:
     def test_statespace_defaults(self, matarrayout):
         """Make sure the tests are run with the configured defaults"""
         for k, v in _statesp_defaults.items():
-            assert defaults[k] == v, \
-                "{} is {} but expected {}".format(k, defaults[k], v)
+            assert defaults[k] == v, "{} is {} but expected {}".format(
+                k, defaults[k], v
+            )
 
 
 # test data for test_latex_repr below
-LTX_G1 = ([[np.pi, 1e100], [-1.23456789, 5e-23]],
-          [[0], [1]],
-          [[987654321, 0.001234]],
-          [[5]])
+LTX_G1 = (
+    [[np.pi, 1e100], [-1.23456789, 5e-23]],
+    [[0], [1]],
+    [[987654321, 0.001234]],
+    [[5]],
+)
 
-LTX_G2 = ([],
-          [],
-          [],
-          [[1.2345, -2e-200], [-1, 0]])
+LTX_G2 = ([], [], [], [[1.2345, -2e-200], [-1, 0]])
 
 LTX_G1_REF = {
-    'p3_p' : '\\[\n\\left(\n\\begin{array}{rllrll|rll}\n3.&\\hspace{-1em}14&\\hspace{-1em}\\phantom{\\cdot}&1\\phantom{.}&\\hspace{-1em}&\\hspace{-1em}\\cdot10^{100}&0\\phantom{.}&\\hspace{-1em}&\\hspace{-1em}\\phantom{\\cdot}\\\\\n-1.&\\hspace{-1em}23&\\hspace{-1em}\\phantom{\\cdot}&5\\phantom{.}&\\hspace{-1em}&\\hspace{-1em}\\cdot10^{-23}&1\\phantom{.}&\\hspace{-1em}&\\hspace{-1em}\\phantom{\\cdot}\\\\\n\\hline\n9.&\\hspace{-1em}88&\\hspace{-1em}\\cdot10^{8}&0.&\\hspace{-1em}00123&\\hspace{-1em}\\phantom{\\cdot}&5\\phantom{.}&\\hspace{-1em}&\\hspace{-1em}\\phantom{\\cdot}\\\\\n\\end{array}\\right)\n\\]',
-
-    'p5_p' : '\\[\n\\left(\n\\begin{array}{rllrll|rll}\n3.&\\hspace{-1em}1416&\\hspace{-1em}\\phantom{\\cdot}&1\\phantom{.}&\\hspace{-1em}&\\hspace{-1em}\\cdot10^{100}&0\\phantom{.}&\\hspace{-1em}&\\hspace{-1em}\\phantom{\\cdot}\\\\\n-1.&\\hspace{-1em}2346&\\hspace{-1em}\\phantom{\\cdot}&5\\phantom{.}&\\hspace{-1em}&\\hspace{-1em}\\cdot10^{-23}&1\\phantom{.}&\\hspace{-1em}&\\hspace{-1em}\\phantom{\\cdot}\\\\\n\\hline\n9.&\\hspace{-1em}8765&\\hspace{-1em}\\cdot10^{8}&0.&\\hspace{-1em}001234&\\hspace{-1em}\\phantom{\\cdot}&5\\phantom{.}&\\hspace{-1em}&\\hspace{-1em}\\phantom{\\cdot}\\\\\n\\end{array}\\right)\n\\]',
-
-    'p3_s' : '\\[\n\\begin{array}{ll}\nA = \\left(\\begin{array}{rllrll}\n3.&\\hspace{-1em}14&\\hspace{-1em}\\phantom{\\cdot}&1\\phantom{.}&\\hspace{-1em}&\\hspace{-1em}\\cdot10^{100}\\\\\n-1.&\\hspace{-1em}23&\\hspace{-1em}\\phantom{\\cdot}&5\\phantom{.}&\\hspace{-1em}&\\hspace{-1em}\\cdot10^{-23}\\\\\n\\end{array}\\right)\n&\nB = \\left(\\begin{array}{rll}\n0\\phantom{.}&\\hspace{-1em}&\\hspace{-1em}\\phantom{\\cdot}\\\\\n1\\phantom{.}&\\hspace{-1em}&\\hspace{-1em}\\phantom{\\cdot}\\\\\n\\end{array}\\right)\n\\\\\nC = \\left(\\begin{array}{rllrll}\n9.&\\hspace{-1em}88&\\hspace{-1em}\\cdot10^{8}&0.&\\hspace{-1em}00123&\\hspace{-1em}\\phantom{\\cdot}\\\\\n\\end{array}\\right)\n&\nD = \\left(\\begin{array}{rll}\n5\\phantom{.}&\\hspace{-1em}&\\hspace{-1em}\\phantom{\\cdot}\\\\\n\\end{array}\\right)\n\\end{array}\n\\]',
-
-    'p5_s' : '\\[\n\\begin{array}{ll}\nA = \\left(\\begin{array}{rllrll}\n3.&\\hspace{-1em}1416&\\hspace{-1em}\\phantom{\\cdot}&1\\phantom{.}&\\hspace{-1em}&\\hspace{-1em}\\cdot10^{100}\\\\\n-1.&\\hspace{-1em}2346&\\hspace{-1em}\\phantom{\\cdot}&5\\phantom{.}&\\hspace{-1em}&\\hspace{-1em}\\cdot10^{-23}\\\\\n\\end{array}\\right)\n&\nB = \\left(\\begin{array}{rll}\n0\\phantom{.}&\\hspace{-1em}&\\hspace{-1em}\\phantom{\\cdot}\\\\\n1\\phantom{.}&\\hspace{-1em}&\\hspace{-1em}\\phantom{\\cdot}\\\\\n\\end{array}\\right)\n\\\\\nC = \\left(\\begin{array}{rllrll}\n9.&\\hspace{-1em}8765&\\hspace{-1em}\\cdot10^{8}&0.&\\hspace{-1em}001234&\\hspace{-1em}\\phantom{\\cdot}\\\\\n\\end{array}\\right)\n&\nD = \\left(\\begin{array}{rll}\n5\\phantom{.}&\\hspace{-1em}&\\hspace{-1em}\\phantom{\\cdot}\\\\\n\\end{array}\\right)\n\\end{array}\n\\]',
+    "p3_p": "\\[\n\\left(\n\\begin{array}{rllrll|rll}\n3.&\\hspace{-1em}14&\\hspace{-1em}\\phantom{\\cdot}&1\\phantom{.}&\\hspace{-1em}&\\hspace{-1em}\\cdot10^{100}&0\\phantom{.}&\\hspace{-1em}&\\hspace{-1em}\\phantom{\\cdot}\\\\\n-1.&\\hspace{-1em}23&\\hspace{-1em}\\phantom{\\cdot}&5\\phantom{.}&\\hspace{-1em}&\\hspace{-1em}\\cdot10^{-23}&1\\phantom{.}&\\hspace{-1em}&\\hspace{-1em}\\phantom{\\cdot}\\\\\n\\hline\n9.&\\hspace{-1em}88&\\hspace{-1em}\\cdot10^{8}&0.&\\hspace{-1em}00123&\\hspace{-1em}\\phantom{\\cdot}&5\\phantom{.}&\\hspace{-1em}&\\hspace{-1em}\\phantom{\\cdot}\\\\\n\\end{array}\\right)\n\\]",
+    "p5_p": "\\[\n\\left(\n\\begin{array}{rllrll|rll}\n3.&\\hspace{-1em}1416&\\hspace{-1em}\\phantom{\\cdot}&1\\phantom{.}&\\hspace{-1em}&\\hspace{-1em}\\cdot10^{100}&0\\phantom{.}&\\hspace{-1em}&\\hspace{-1em}\\phantom{\\cdot}\\\\\n-1.&\\hspace{-1em}2346&\\hspace{-1em}\\phantom{\\cdot}&5\\phantom{.}&\\hspace{-1em}&\\hspace{-1em}\\cdot10^{-23}&1\\phantom{.}&\\hspace{-1em}&\\hspace{-1em}\\phantom{\\cdot}\\\\\n\\hline\n9.&\\hspace{-1em}8765&\\hspace{-1em}\\cdot10^{8}&0.&\\hspace{-1em}001234&\\hspace{-1em}\\phantom{\\cdot}&5\\phantom{.}&\\hspace{-1em}&\\hspace{-1em}\\phantom{\\cdot}\\\\\n\\end{array}\\right)\n\\]",
+    "p3_s": (
+        "\\[\n\\begin{array}{ll}\nA ="
+        " \\left(\\begin{array}{rllrll}\n3.&\\hspace{-1em}14&\\hspace{-1em}\\phantom{\\cdot}&1\\phantom{.}&\\hspace{-1em}&\\hspace{-1em}\\cdot10^{100}\\\\\n-1.&\\hspace{-1em}23&\\hspace{-1em}\\phantom{\\cdot}&5\\phantom{.}&\\hspace{-1em}&\\hspace{-1em}\\cdot10^{-23}\\\\\n\\end{array}\\right)\n&\nB"
+        " = \\left(\\begin{array}{rll}\n0\\phantom{.}&\\hspace{-1em}&\\hspace{-1em}\\phantom{\\cdot}\\\\\n1\\phantom{.}&\\hspace{-1em}&\\hspace{-1em}\\phantom{\\cdot}\\\\\n\\end{array}\\right)\n\\\\\nC"
+        " = \\left(\\begin{array}{rllrll}\n9.&\\hspace{-1em}88&\\hspace{-1em}\\cdot10^{8}&0.&\\hspace{-1em}00123&\\hspace{-1em}\\phantom{\\cdot}\\\\\n\\end{array}\\right)\n&\nD"
+        " = \\left(\\begin{array}{rll}\n5\\phantom{.}&\\hspace{-1em}&\\hspace{-1em}\\phantom{\\cdot}\\\\\n\\end{array}\\right)\n\\end{array}\n\\]"
+    ),
+    "p5_s": (
+        "\\[\n\\begin{array}{ll}\nA ="
+        " \\left(\\begin{array}{rllrll}\n3.&\\hspace{-1em}1416&\\hspace{-1em}\\phantom{\\cdot}&1\\phantom{.}&\\hspace{-1em}&\\hspace{-1em}\\cdot10^{100}\\\\\n-1.&\\hspace{-1em}2346&\\hspace{-1em}\\phantom{\\cdot}&5\\phantom{.}&\\hspace{-1em}&\\hspace{-1em}\\cdot10^{-23}\\\\\n\\end{array}\\right)\n&\nB"
+        " = \\left(\\begin{array}{rll}\n0\\phantom{.}&\\hspace{-1em}&\\hspace{-1em}\\phantom{\\cdot}\\\\\n1\\phantom{.}&\\hspace{-1em}&\\hspace{-1em}\\phantom{\\cdot}\\\\\n\\end{array}\\right)\n\\\\\nC"
+        " = \\left(\\begin{array}{rllrll}\n9.&\\hspace{-1em}8765&\\hspace{-1em}\\cdot10^{8}&0.&\\hspace{-1em}001234&\\hspace{-1em}\\phantom{\\cdot}\\\\\n\\end{array}\\right)\n&\nD"
+        " = \\left(\\begin{array}{rll}\n5\\phantom{.}&\\hspace{-1em}&\\hspace{-1em}\\phantom{\\cdot}\\\\\n\\end{array}\\right)\n\\end{array}\n\\]"
+    ),
 }
 
 LTX_G2_REF = {
-    'p3_p' : '\\[\n\\left(\n\\begin{array}{rllrll}\n1.&\\hspace{-1em}23&\\hspace{-1em}\\phantom{\\cdot}&-2\\phantom{.}&\\hspace{-1em}&\\hspace{-1em}\\cdot10^{-200}\\\\\n-1\\phantom{.}&\\hspace{-1em}&\\hspace{-1em}\\phantom{\\cdot}&0\\phantom{.}&\\hspace{-1em}&\\hspace{-1em}\\phantom{\\cdot}\\\\\n\\end{array}\\right)\n\\]',
-
-    'p5_p' : '\\[\n\\left(\n\\begin{array}{rllrll}\n1.&\\hspace{-1em}2345&\\hspace{-1em}\\phantom{\\cdot}&-2\\phantom{.}&\\hspace{-1em}&\\hspace{-1em}\\cdot10^{-200}\\\\\n-1\\phantom{.}&\\hspace{-1em}&\\hspace{-1em}\\phantom{\\cdot}&0\\phantom{.}&\\hspace{-1em}&\\hspace{-1em}\\phantom{\\cdot}\\\\\n\\end{array}\\right)\n\\]',
-
-    'p3_s' : '\\[\n\\begin{array}{ll}\nD = \\left(\\begin{array}{rllrll}\n1.&\\hspace{-1em}23&\\hspace{-1em}\\phantom{\\cdot}&-2\\phantom{.}&\\hspace{-1em}&\\hspace{-1em}\\cdot10^{-200}\\\\\n-1\\phantom{.}&\\hspace{-1em}&\\hspace{-1em}\\phantom{\\cdot}&0\\phantom{.}&\\hspace{-1em}&\\hspace{-1em}\\phantom{\\cdot}\\\\\n\\end{array}\\right)\n\\end{array}\n\\]',
-
-    'p5_s' : '\\[\n\\begin{array}{ll}\nD = \\left(\\begin{array}{rllrll}\n1.&\\hspace{-1em}2345&\\hspace{-1em}\\phantom{\\cdot}&-2\\phantom{.}&\\hspace{-1em}&\\hspace{-1em}\\cdot10^{-200}\\\\\n-1\\phantom{.}&\\hspace{-1em}&\\hspace{-1em}\\phantom{\\cdot}&0\\phantom{.}&\\hspace{-1em}&\\hspace{-1em}\\phantom{\\cdot}\\\\\n\\end{array}\\right)\n\\end{array}\n\\]',
+    "p3_p": "\\[\n\\left(\n\\begin{array}{rllrll}\n1.&\\hspace{-1em}23&\\hspace{-1em}\\phantom{\\cdot}&-2\\phantom{.}&\\hspace{-1em}&\\hspace{-1em}\\cdot10^{-200}\\\\\n-1\\phantom{.}&\\hspace{-1em}&\\hspace{-1em}\\phantom{\\cdot}&0\\phantom{.}&\\hspace{-1em}&\\hspace{-1em}\\phantom{\\cdot}\\\\\n\\end{array}\\right)\n\\]",
+    "p5_p": "\\[\n\\left(\n\\begin{array}{rllrll}\n1.&\\hspace{-1em}2345&\\hspace{-1em}\\phantom{\\cdot}&-2\\phantom{.}&\\hspace{-1em}&\\hspace{-1em}\\cdot10^{-200}\\\\\n-1\\phantom{.}&\\hspace{-1em}&\\hspace{-1em}\\phantom{\\cdot}&0\\phantom{.}&\\hspace{-1em}&\\hspace{-1em}\\phantom{\\cdot}\\\\\n\\end{array}\\right)\n\\]",
+    "p3_s": (
+        "\\[\n\\begin{array}{ll}\nD ="
+        " \\left(\\begin{array}{rllrll}\n1.&\\hspace{-1em}23&\\hspace{-1em}\\phantom{\\cdot}&-2\\phantom{.}&\\hspace{-1em}&\\hspace{-1em}\\cdot10^{-200}\\\\\n-1\\phantom{.}&\\hspace{-1em}&\\hspace{-1em}\\phantom{\\cdot}&0\\phantom{.}&\\hspace{-1em}&\\hspace{-1em}\\phantom{\\cdot}\\\\\n\\end{array}\\right)\n\\end{array}\n\\]"
+    ),
+    "p5_s": (
+        "\\[\n\\begin{array}{ll}\nD ="
+        " \\left(\\begin{array}{rllrll}\n1.&\\hspace{-1em}2345&\\hspace{-1em}\\phantom{\\cdot}&-2\\phantom{.}&\\hspace{-1em}&\\hspace{-1em}\\cdot10^{-200}\\\\\n-1\\phantom{.}&\\hspace{-1em}&\\hspace{-1em}\\phantom{\\cdot}&0\\phantom{.}&\\hspace{-1em}&\\hspace{-1em}\\phantom{\\cdot}\\\\\n\\end{array}\\right)\n\\end{array}\n\\]"
+    ),
 }
 
-refkey_n = {None: 'p3', '.3g': 'p3', '.5g': 'p5'}
-refkey_r = {None: 'p', 'partitioned': 'p', 'separate': 's'}
+refkey_n = {None: "p3", ".3g": "p3", ".5g": "p5"}
+refkey_r = {None: "p", "partitioned": "p", "separate": "s"}
 
-@pytest.mark.parametrize(" gmats,  ref",
-                         [(LTX_G1, LTX_G1_REF),
-                          (LTX_G2, LTX_G2_REF)])
+
+@pytest.mark.parametrize(" gmats,  ref", [(LTX_G1, LTX_G1_REF), (LTX_G2, LTX_G2_REF)])
 @pytest.mark.parametrize("repr_type", [None, "partitioned", "separate"])
 @pytest.mark.parametrize("num_format", [None, ".3g", ".5g"])
 def test_latex_repr(gmats, ref, repr_type, num_format, editsdefaults):
@@ -917,11 +1046,12 @@ def test_latex_repr(gmats, ref, repr_type, num_format, editsdefaults):
         print(f'p3_p : {g1._repr_latex_()!r}')
     """
     from control import set_defaults
+
     if num_format is not None:
-        set_defaults('statesp', latex_num_format=num_format)
+        set_defaults("statesp", latex_num_format=num_format)
 
     if repr_type is not None:
-        set_defaults('statesp', latex_repr_type=repr_type)
+        set_defaults("statesp", latex_repr_type=repr_type)
 
     g = StateSpace(*gmats)
     refkey = "{}_{}".format(refkey_n[num_format], refkey_r[repr_type])
@@ -929,13 +1059,16 @@ def test_latex_repr(gmats, ref, repr_type, num_format, editsdefaults):
 
 
 @pytest.mark.parametrize(
-    "op",
-    [pytest.param(getattr(operator, s), id=s) for s in ('add', 'sub', 'mul')])
+    "op", [pytest.param(getattr(operator, s), id=s) for s in ("add", "sub", "mul")]
+)
 @pytest.mark.parametrize(
     "tf, arr",
-    [pytest.param(ct.tf([1], [0.5, 1]), np.array(2.), id="0D scalar"),
-     pytest.param(ct.tf([1], [0.5, 1]), np.array([2.]), id="1D scalar"),
-     pytest.param(ct.tf([1], [0.5, 1]), np.array([[2.]]), id="2D scalar")])
+    [
+        pytest.param(ct.tf([1], [0.5, 1]), np.array(2.0), id="0D scalar"),
+        pytest.param(ct.tf([1], [0.5, 1]), np.array([2.0]), id="1D scalar"),
+        pytest.param(ct.tf([1], [0.5, 1]), np.array([[2.0]]), id="2D scalar"),
+    ],
+)
 def test_xferfcn_ndarray_precedence(op, tf, arr):
     # Apply the operator to the transfer function and array
     ss = ct.tf2ss(tf)
@@ -946,4 +1079,3 @@ def test_xferfcn_ndarray_precedence(op, tf, arr):
     ss = ct.tf2ss(tf)
     result = op(arr, ss)
     assert isinstance(result, ct.StateSpace)
-

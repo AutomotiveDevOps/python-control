@@ -6,10 +6,11 @@
 # Astrom and Murray, Chapter 5.  It is intended to demonstrate the
 # basic functionality of the python-control package.
 #
-
 import os
-import numpy as np
+
 import matplotlib.pyplot as plt  # MATLAB plotting functions
+import numpy as np
+
 from control.matlab import *  # MATLAB-like functions
 
 #
@@ -20,15 +21,15 @@ from control.matlab import *  # MATLAB-like functions
 #
 
 # System parameters
-m = 4       # mass of aircraft
+m = 4  # mass of aircraft
 J = 0.0475  # inertia around pitch axis
-r = 0.25    # distance to center of force
-g = 9.8     # gravitational constant
-c = 0.05    # damping factor (estimated)
+r = 0.25  # distance to center of force
+g = 9.8  # gravitational constant
+c = 0.05  # damping factor (estimated)
 
 # State space dynamics
 xe = [0, 0, 0, 0, 0, 0]  # equilibrium point of interest
-ue = [0, m*g]  # (note these are lists, not matrices)
+ue = [0, m * g]  # (note these are lists, not matrices)
 
 # TODO: The following objects need converting from np.matrix to np.array
 # This will involve re-working the subsequent equations as the shapes
@@ -36,23 +37,29 @@ ue = [0, m*g]  # (note these are lists, not matrices)
 
 # Dynamics matrix (use matrix type so that * works for multiplication)
 A = np.matrix(
-    [[0, 0, 0, 1, 0, 0],
-     [0, 0, 0, 0, 1, 0],
-     [0, 0, 0, 0, 0, 1],
-     [0, 0, (-ue[0]*np.sin(xe[2]) - ue[1]*np.cos(xe[2]))/m, -c/m, 0, 0],
-     [0, 0, (ue[0]*np.cos(xe[2]) - ue[1]*np.sin(xe[2]))/m, 0, -c/m, 0],
-     [0, 0, 0, 0, 0, 0]]
+    [
+        [0, 0, 0, 1, 0, 0],
+        [0, 0, 0, 0, 1, 0],
+        [0, 0, 0, 0, 0, 1],
+        [0, 0, (-ue[0] * np.sin(xe[2]) - ue[1] * np.cos(xe[2])) / m, -c / m, 0, 0],
+        [0, 0, (ue[0] * np.cos(xe[2]) - ue[1] * np.sin(xe[2])) / m, 0, -c / m, 0],
+        [0, 0, 0, 0, 0, 0],
+    ]
 )
 
 # Input matrix
 B = np.matrix(
-    [[0, 0], [0, 0], [0, 0],
-     [np.cos(xe[2])/m, -np.sin(xe[2])/m],
-     [np.sin(xe[2])/m, np.cos(xe[2])/m],
-     [r/J, 0]]
+    [
+        [0, 0],
+        [0, 0],
+        [0, 0],
+        [np.cos(xe[2]) / m, -np.sin(xe[2]) / m],
+        [np.sin(xe[2]) / m, np.cos(xe[2]) / m],
+        [r / J, 0],
+    ]
 )
 
-# Output matrix 
+# Output matrix
 C = np.matrix([[1, 0, 0, 0, 0, 0], [0, 1, 0, 0, 0, 0]])
 D = np.matrix([[0, 0], [0, 0]])
 
@@ -60,7 +67,7 @@ D = np.matrix([[0, 0], [0, 0]])
 # Construct inputs and outputs corresponding to steps in xy position
 #
 # The vectors xd and yd correspond to the states that are the desired
-# equilibrium states for the system.  The matrices Cx and Cy are the 
+# equilibrium states for the system.  The matrices Cx and Cy are the
 # corresponding outputs.
 #
 # The way these vectors are used is to compute the closed loop system
@@ -69,7 +76,7 @@ D = np.matrix([[0, 0], [0, 0]])
 #   xdot = Ax + B u  =>  xdot = (A-BK)x + K xd
 #      u = -K(x - xd)       y = Cx
 #
-# The closed loop dynamics can be simulated using the "step" command, 
+# The closed loop dynamics can be simulated using the "step" command,
 # with K*xd as the input vector (assumes that the "input" is unit size,
 # so that xd corresponds to the desired steady state.
 #
@@ -145,35 +152,35 @@ K1a = np.matrix(K)
 # Cy: (1, 2)
 
 # Step response for the first input
-H1ax = ss(Ax - Bx*K1a[0, lat], Bx*K1a[0, lat]*xd[lat, :], Cx, Dx)
+H1ax = ss(Ax - Bx * K1a[0, lat], Bx * K1a[0, lat] * xd[lat, :], Cx, Dx)
 Yx, Tx = step(H1ax, T=np.linspace(0, 10, 100))
 
 # Step response for the second input
-H1ay = ss(Ay - By*K1a[1, alt], By*K1a[1, alt]*yd[alt, :], Cy, Dy)
+H1ay = ss(Ay - By * K1a[1, alt], By * K1a[1, alt] * yd[alt, :], Cy, Dy)
 Yy, Ty = step(H1ay, T=np.linspace(0, 10, 100))
 
 plt.subplot(221)
 plt.title("Identity weights")
 # plt.plot(T, Y[:,1, 1], '-', T, Y[:,2, 2], '--')
-plt.plot(Tx.T, Yx.T, '-', Ty.T, Yy.T, '--')
-plt.plot([0, 10], [1, 1], 'k-')
+plt.plot(Tx.T, Yx.T, "-", Ty.T, Yy.T, "--")
+plt.plot([0, 10], [1, 1], "k-")
 
 plt.axis([0, 10, -0.1, 1.4])
-plt.ylabel('position')
-plt.legend(('x', 'y'), loc='lower right')
+plt.ylabel("position")
+plt.legend(("x", "y"), loc="lower right")
 
 # Look at different input weightings
 Qu1a = np.diag([1, 1])
 K1a, X, E = lqr(A, B, Qx1, Qu1a)
-H1ax = ss(Ax - Bx*K1a[0, lat], Bx*K1a[0, lat]*xd[lat, :], Cx, Dx)
+H1ax = ss(Ax - Bx * K1a[0, lat], Bx * K1a[0, lat] * xd[lat, :], Cx, Dx)
 
-Qu1b = (40 ** 2)*np.diag([1, 1])
+Qu1b = (40 ** 2) * np.diag([1, 1])
 K1b, X, E = lqr(A, B, Qx1, Qu1b)
-H1bx = ss(Ax - Bx*K1b[0, lat], Bx*K1b[0, lat]*xd[lat, :], Cx, Dx)
+H1bx = ss(Ax - Bx * K1b[0, lat], Bx * K1b[0, lat] * xd[lat, :], Cx, Dx)
 
-Qu1c = (200 ** 2)*np.diag([1, 1])
+Qu1c = (200 ** 2) * np.diag([1, 1])
 K1c, X, E = lqr(A, B, Qx1, Qu1c)
-H1cx = ss(Ax - Bx*K1c[0, lat], Bx*K1c[0, lat]*xd[lat, :], Cx, Dx)
+H1cx = ss(Ax - Bx * K1c[0, lat], Bx * K1c[0, lat] * xd[lat, :], Cx, Dx)
 
 [Y1, T1] = step(H1ax, T=np.linspace(0, 10, 100))
 [Y2, T2] = step(H1bx, T=np.linspace(0, 10, 100))
@@ -181,34 +188,34 @@ H1cx = ss(Ax - Bx*K1c[0, lat], Bx*K1c[0, lat]*xd[lat, :], Cx, Dx)
 
 plt.subplot(222)
 plt.title("Effect of input weights")
-plt.plot(T1.T, Y1.T, 'b-')
-plt.plot(T2.T, Y2.T, 'b-')
-plt.plot(T3.T, Y3.T, 'b-')
-plt.plot([0, 10], [1, 1], 'k-')
+plt.plot(T1.T, Y1.T, "b-")
+plt.plot(T2.T, Y2.T, "b-")
+plt.plot(T3.T, Y3.T, "b-")
+plt.plot([0, 10], [1, 1], "k-")
 
 plt.axis([0, 10, -0.1, 1.4])
 
 # arcarrow([1.3, 0.8], [5, 0.45], -6)
-plt.text(5.3, 0.4, 'rho')
+plt.text(5.3, 0.4, "rho")
 
 # Output weighting - change Qx to use outputs
-Qx2 = C.T*C
-Qu2 = 0.1*np.diag([1, 1])
+Qx2 = C.T * C
+Qu2 = 0.1 * np.diag([1, 1])
 K, X, E = lqr(A, B, Qx2, Qu2)
 K2 = np.matrix(K)
 
-H2x = ss(Ax - Bx*K2[0, lat], Bx*K2[0, lat]*xd[lat, :], Cx, Dx)
-H2y = ss(Ay - By*K2[1, alt], By*K2[1, alt]*yd[alt, :], Cy, Dy)
+H2x = ss(Ax - Bx * K2[0, lat], Bx * K2[0, lat] * xd[lat, :], Cx, Dx)
+H2y = ss(Ay - By * K2[1, alt], By * K2[1, alt] * yd[alt, :], Cy, Dy)
 
 plt.subplot(223)
 plt.title("Output weighting")
 [Y2x, T2x] = step(H2x, T=np.linspace(0, 10, 100))
 [Y2y, T2y] = step(H2y, T=np.linspace(0, 10, 100))
 plt.plot(T2x.T, Y2x.T, T2y.T, Y2y.T)
-plt.ylabel('position')
-plt.xlabel('time')
-plt.ylabel('position')
-plt.legend(('x', 'y'), loc='lower right')
+plt.ylabel("position")
+plt.xlabel("time")
+plt.ylabel("position")
+plt.legend(("x", "y"), loc="lower right")
 
 #
 # Physically motivated weighting
@@ -218,21 +225,21 @@ plt.legend(('x', 'y'), loc='lower right')
 # due to loss in efficiency.
 #
 
-Qx3 = np.diag([100, 10, 2*np.pi/5, 0, 0, 0])
-Qu3 = 0.1*np.diag([1, 10])
+Qx3 = np.diag([100, 10, 2 * np.pi / 5, 0, 0, 0])
+Qu3 = 0.1 * np.diag([1, 10])
 (K, X, E) = lqr(A, B, Qx3, Qu3)
 K3 = np.matrix(K)
 
-H3x = ss(Ax - Bx*K3[0, lat], Bx*K3[0, lat]*xd[lat, :], Cx, Dx)
-H3y = ss(Ay - By*K3[1, alt], By*K3[1, alt]*yd[alt, :], Cy, Dy)
+H3x = ss(Ax - Bx * K3[0, lat], Bx * K3[0, lat] * xd[lat, :], Cx, Dx)
+H3y = ss(Ay - By * K3[1, alt], By * K3[1, alt] * yd[alt, :], Cy, Dy)
 plt.subplot(224)
 # step(H3x, H3y, 10)
 [Y3x, T3x] = step(H3x, T=np.linspace(0, 10, 100))
 [Y3y, T3y] = step(H3y, T=np.linspace(0, 10, 100))
 plt.plot(T3x.T, Y3x.T, T3y.T, Y3y.T)
 plt.title("Physically motivated weights")
-plt.xlabel('time')
-plt.legend(('x', 'y'), loc='lower right')
+plt.xlabel("time")
+plt.legend(("x", "y"), loc="lower right")
 
-if 'PYCONTROL_TEST_EXAMPLES' not in os.environ:
+if "PYCONTROL_TEST_EXAMPLES" not in os.environ:
     plt.show()

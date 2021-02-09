@@ -4,10 +4,11 @@ Time response routines in the Matlab compatibility package
 Note that the return arguments are different than in the standard control package.
 """
 
-__all__ = ['step', 'stepinfo', 'impulse', 'initial', 'lsim']
+__all__ = ["step", "stepinfo", "impulse", "initial", "lsim"]
 
-def step(sys, T=None, X0=0., input=0, output=None, return_x=False):
-    '''
+
+def step(sys, T=None, X0=0.0, input=0, output=None, return_x=False):
+    """
     Step response of a linear system
 
     If the system has multiple inputs or outputs (MIMO), one input has
@@ -56,17 +57,16 @@ def step(sys, T=None, X0=0., input=0, output=None, return_x=False):
     Examples
     --------
     >>> yout, T = step(sys, T, X0)
-    '''
+    """
     from ..timeresp import step_response
 
     # Switch output argument order and transpose outputs
-    out = step_response(sys, T, X0, input, output,
-                        transpose=True, return_x=return_x)
+    out = step_response(sys, T, X0, input, output, transpose=True, return_x=return_x)
     return (out[1], out[0], out[2]) if return_x else (out[1], out[0])
 
-def stepinfo(sys, T=None, SettlingTimeThreshold=0.02,
-             RiseTimeLimits=(0.1, 0.9)):
-    '''
+
+def stepinfo(sys, T=None, SettlingTimeThreshold=0.02, RiseTimeLimits=(0.1, 0.9)):
+    """
     Step response characteristics (Rise time, Settling Time, Peak and others).
 
     Parameters
@@ -105,7 +105,7 @@ def stepinfo(sys, T=None, SettlingTimeThreshold=0.02,
     Examples
     --------
     >>> S = stepinfo(sys, T)
-    '''
+    """
     from ..timeresp import step_info
 
     # Call step_info with MATLAB defaults
@@ -113,8 +113,9 @@ def stepinfo(sys, T=None, SettlingTimeThreshold=0.02,
 
     return S
 
-def impulse(sys, T=None, X0=0., input=0, output=None, return_x=False):
-    '''
+
+def impulse(sys, T=None, X0=0.0, input=0, output=None, return_x=False):
+    """
     Impulse response of a linear system
 
     If the system has multiple inputs or outputs (MIMO), one input has
@@ -161,16 +162,16 @@ def impulse(sys, T=None, X0=0., input=0, output=None, return_x=False):
     Examples
     --------
     >>> yout, T = impulse(sys, T)
-    '''
+    """
     from ..timeresp import impulse_response
 
     # Switch output argument order and transpose outputs
-    out = impulse_response(sys, T, X0, input, output,
-                           transpose = True, return_x=return_x)
+    out = impulse_response(sys, T, X0, input, output, transpose=True, return_x=return_x)
     return (out[1], out[0], out[2]) if return_x else (out[1], out[0])
 
-def initial(sys, T=None, X0=0., input=None, output=None, return_x=False):
-    '''
+
+def initial(sys, T=None, X0=0.0, input=None, output=None, return_x=False):
+    """
     Initial condition response of a linear system
 
     If the system has multiple outputs (?IMO), optionally, one output
@@ -217,17 +218,18 @@ def initial(sys, T=None, X0=0., input=None, output=None, return_x=False):
     --------
     >>> yout, T = initial(sys, T, X0)
 
-    '''
+    """
     from ..timeresp import initial_response
 
     # Switch output argument order and transpose outputs
-    T, yout, xout = initial_response(sys, T, X0, output=output,
-                                     transpose=True, return_x=True)
+    T, yout, xout = initial_response(
+        sys, T, X0, output=output, transpose=True, return_x=True
+    )
     return (yout, T, xout) if return_x else (yout, T)
 
 
-def lsim(sys, U=0., T=None, X0=0.):
-    '''
+def lsim(sys, U=0.0, T=None, X0=0.0):
+    """
     Simulate the output of a linear system.
 
     As a convenience for parameters `U`, `X0`:
@@ -267,7 +269,7 @@ def lsim(sys, U=0., T=None, X0=0.):
     Examples
     --------
     >>> yout, T, xout = lsim(sys, U, T, X0)
-    '''
+    """
     from ..timeresp import forced_response
 
     # Switch output argument order and transpose outputs (and always return x)

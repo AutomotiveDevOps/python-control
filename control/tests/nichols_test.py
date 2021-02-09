@@ -2,19 +2,20 @@
 
 RMM, 31 Mar 2011
 """
-
 import pytest
 
-from control import StateSpace, nichols_plot, nichols
+from control import nichols
+from control import nichols_plot
+from control import StateSpace
 
 
 @pytest.fixture()
 def tsys():
     """Set up a system to test operations on."""
-    A = [[-3., 4., 2.], [-1., -3., 0.], [2., 5., 3.]]
-    B = [[1.], [-3.], [-2.]]
-    C = [[4., 2., -3.]]
-    D = [[0.]]
+    A = [[-3.0, 4.0, 2.0], [-1.0, -3.0, 0.0], [2.0, 5.0, 3.0]]
+    B = [[1.0], [-3.0], [-2.0]]
+    C = [[4.0, 2.0, -3.0]]
+    D = [[0.0]]
     return StateSpace(A, B, C, D)
 
 

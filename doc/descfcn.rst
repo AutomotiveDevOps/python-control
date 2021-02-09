@@ -25,7 +25,7 @@ If such an intersection exists, it indicates that there may be a limit
 cycle of amplitude :math:`A` with frequency :math:`\omega`.
 
 Describing function analysis is a simple method, but it is approximate
-because it assumes that higher harmonics can be neglected. 
+because it assumes that higher harmonics can be neglected.
 
 Module usage
 ============

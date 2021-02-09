@@ -4,27 +4,37 @@
 # for solution of Lyapunov and Riccati equations.
 #
 # Author: Bjorn Olofsson
-
 # Python 3 compatibility (needs to go here)
-from __future__ import print_function
+from numpy import asarray
+from numpy import atleast_2d
+from numpy import copy
+from numpy import dot
+from numpy import eye
+from numpy import finfo
+from numpy import inexact
+from numpy import shape
+from numpy import size
+from numpy import zeros
+from scipy.linalg import eigvals
+from scipy.linalg import solve
+from scipy.linalg import solve_discrete_are
+
+from .exception import ControlArgument
+from .exception import ControlSlycot
+from .statesp import _ssmatrix
 
 # Copyright (c) 2011, All rights reserved.
-
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
 # are met:
-
 # 1. Redistributions of source code must retain the above copyright
 #    notice, this list of conditions and the following disclaimer.
-
 # 2. Redistributions in binary form must reproduce the above copyright
 #    notice, this list of conditions and the following disclaimer in the
 #    documentation and/or other materials provided with the distribution.
-
 # 3. Neither the name of the project author nor the names of its
 #    contributors may be used to endorse or promote products derived
 #    from this software without specific prior written permission.
-
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 # "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
 # LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
@@ -38,13 +48,7 @@ from __future__ import print_function
 # OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 # SUCH DAMAGE.
 
-from numpy import shape, size, asarray, copy, zeros, eye, dot, \
-    finfo, inexact, atleast_2d
-from scipy.linalg import eigvals, solve_discrete_are, solve
-from .exception import ControlSlycot, ControlArgument
-from .statesp import _ssmatrix
-
-__all__ = ['lyap', 'dlyap', 'dare', 'care']
+__all__ = ["lyap", "dlyap", "dare", "care"]
 
 #
 # Lyapunov equation solvers lyap and dlyap
@@ -132,8 +136,10 @@ def lyap(A, Q, C=None, E=None):
     if C is None and E is None:
         # Check input data for consistency
         if shape(A) != shape(Q):
-            raise ControlArgument("A and Q must be matrices of identical \
-                                sizes.")
+            raise ControlArgument(
+                "A and Q must be matrices of identical                                "
+                " sizes."
+            )
 
         if size(A) > 1 and shape(A)[0] != shape(A)[1]:
             raise ControlArgument("A must be a quadratic matrix.")
@@ -146,19 +152,22 @@ def lyap(A, Q, C=None, E=None):
 
         # Solve the Lyapunov equation by calling Slycot function sb03md
         try:
-            X, scale, sep, ferr, w = \
-                sb03md(n, -Q, A, eye(n, n), 'C', trana='T')
+            X, scale, sep, ferr, w = sb03md(n, -Q, A, eye(n, n), "C", trana="T")
         except ValueError as ve:
             if ve.info < 0:
                 e = ValueError(ve.message)
                 e.info = ve.info
-            elif ve.info == n+1:
-                e = ValueError("The matrix A and -A have common or very \
-                    close eigenvalues.")
+            elif ve.info == n + 1:
+                e = ValueError(
+                    "The matrix A and -A have common or very                     close"
+                    " eigenvalues."
+                )
                 e.info = ve.info
             else:
-                e = ValueError("The QR algorithm failed to compute all \
-                    the eigenvalues (see LAPACK Library routine DGEES).")
+                e = ValueError(
+                    "The QR algorithm failed to compute all                     the"
+                    " eigenvalues (see LAPACK Library routine DGEES)."
+                )
                 e.info = ve.info
             raise e
 
@@ -171,10 +180,12 @@ def lyap(A, Q, C=None, E=None):
         if size(Q) > 1 and shape(Q)[0] != shape(Q)[1]:
             raise ControlArgument("Q must be a quadratic matrix.")
 
-        if (size(C) > 1 and shape(C)[0] != n) or \
-           (size(C) > 1 and shape(C)[1] != m) or \
-           (size(C) == 1 and size(A) != 1) or \
-           (size(C) == 1 and size(Q) != 1):
+        if (
+            (size(C) > 1 and shape(C)[0] != n)
+            or (size(C) > 1 and shape(C)[1] != m)
+            or (size(C) == 1 and size(A) != 1)
+            or (size(C) == 1 and size(Q) != 1)
+        ):
             raise ControlArgument("C matrix has incompatible dimensions.")
 
         # Solve the Sylvester equation by calling the Slycot function sb04md
@@ -185,29 +196,43 @@ def lyap(A, Q, C=None, E=None):
                 e = ValueError(ve.message)
                 e.info = ve.info
             elif ve.info > m:
-                e = ValueError("A singular matrix was encountered whilst \
-                    solving for the %i-th column of matrix X." % ve.info-m)
+                e = ValueError(
+                    "A singular matrix was encountered whilst                    "
+                    " solving for the %i-th column of matrix X."
+                    % ve.info
+                    - m
+                )
                 e.info = ve.info
             else:
-                e = ValueError("The QR algorithm failed to compute all the \
-                    eigenvalues (see LAPACK Library routine DGEES).")
+                e = ValueError(
+                    "The QR algorithm failed to compute all the                    "
+                    " eigenvalues (see LAPACK Library routine DGEES)."
+                )
                 e.info = ve.info
             raise e
 
     # Solve the generalized Lyapunov equation
     elif C is None and E is not None:
         # Check input data for consistency
-        if (size(Q) > 1 and shape(Q)[0] != shape(Q)[1]) or \
-           (size(Q) > 1 and shape(Q)[0] != n) or \
-           (size(Q) == 1 and n > 1):
-            raise ControlArgument("Q must be a square matrix with the same \
-                dimension as A.")
+        if (
+            (size(Q) > 1 and shape(Q)[0] != shape(Q)[1])
+            or (size(Q) > 1 and shape(Q)[0] != n)
+            or (size(Q) == 1 and n > 1)
+        ):
+            raise ControlArgument(
+                "Q must be a square matrix with the same                 dimension"
+                " as A."
+            )
 
-        if (size(E) > 1 and shape(E)[0] != shape(E)[1]) or \
-           (size(E) > 1 and shape(E)[0] != n) or \
-           (size(E) == 1 and n > 1):
-            raise ControlArgument("E must be a square matrix with the same \
-                dimension as A.")
+        if (
+            (size(E) > 1 and shape(E)[0] != shape(E)[1])
+            or (size(E) > 1 and shape(E)[0] != n)
+            or (size(E) == 1 and n > 1)
+        ):
+            raise ControlArgument(
+                "E must be a square matrix with the same                 dimension"
+                " as A."
+            )
 
         if not _is_symmetric(Q):
             raise ControlArgument("Q must be a symmetric matrix.")
@@ -221,32 +246,38 @@ def lyap(A, Q, C=None, E=None):
         # Solve the generalized Lyapunov equation by calling Slycot
         # function sg03ad
         try:
-            A, E, Q, Z, X, scale, sep, ferr, alphar, alphai, beta = \
-                sg03ad('C', 'B', 'N', 'T', 'L', n,
-                       A, E, eye(n, n), eye(n, n), -Q)
+            A, E, Q, Z, X, scale, sep, ferr, alphar, alphai, beta = sg03ad(
+                "C", "B", "N", "T", "L", n, A, E, eye(n, n), eye(n, n), -Q
+            )
         except ValueError as ve:
             if ve.info < 0 or ve.info > 4:
                 e = ValueError(ve.message)
                 e.info = ve.info
             elif ve.info == 1:
-                e = ValueError("The matrix contained in the upper \
-                                Hessenberg part of the array A is not in \
-                                upper quasitriangular form")
+                e = ValueError(
+                    "The matrix contained in the upper                                "
+                    " Hessenberg part of the array A is not in                         "
+                    "        upper quasitriangular form"
+                )
                 e.info = ve.info
             elif ve.info == 2:
-                e = ValueError("The pencil A - lambda * E cannot be \
-                                reduced to generalized Schur form: LAPACK \
-                                routine DGEGS has failed to converge")
+                e = ValueError(
+                    "The pencil A - lambda * E cannot be                               "
+                    "  reduced to generalized Schur form: LAPACK                       "
+                    "          routine DGEGS has failed to converge"
+                )
                 e.info = ve.info
             elif ve.info == 4:
-                e = ValueError("The pencil A - lambda * E has a \
-                                degenerate pair of eigenvalues. That is, \
-                                lambda_i = lambda_j for some i and j, where \
-                                lambda_i and lambda_j are eigenvalues of \
-                                A - lambda * E. Hence, the equation is \
-                                singular;  perturbed values were \
-                                used to solve the equation (but the matrices \
-                                A and E are unchanged)")
+                e = ValueError(
+                    "The pencil A - lambda * E has a                                "
+                    " degenerate pair of eigenvalues. That is,                         "
+                    "        lambda_i = lambda_j for some i and j, where               "
+                    "                  lambda_i and lambda_j are eigenvalues of        "
+                    "                         A - lambda * E. Hence, the equation is   "
+                    "                              singular;  perturbed values were    "
+                    "                             used to solve the equation (but the"
+                    " matrices                                 A and E are unchanged)"
+                )
                 e.info = ve.info
             raise e
     # Invalid set of input parameters
@@ -257,7 +288,7 @@ def lyap(A, Q, C=None, E=None):
 
 
 def dlyap(A, Q, C=None, E=None):
-    """ dlyap(A,Q) solves the discrete-time Lyapunov equation
+    """dlyap(A,Q) solves the discrete-time Lyapunov equation
 
         :math:`A X A^T - X + Q = 0`
 
@@ -276,7 +307,7 @@ def dlyap(A, Q, C=None, E=None):
         :math:`A X A^T - E X E^T + Q = 0`
 
     where Q is a symmetric matrix and A, Q and E are square matrices
-    of the same dimension. """
+    of the same dimension."""
 
     # Make sure we have access to the right slycot routines
     try:
@@ -322,8 +353,10 @@ def dlyap(A, Q, C=None, E=None):
     if C is None and E is None:
         # Check input data for consistency
         if shape(A) != shape(Q):
-            raise ControlArgument("A and Q must be matrices of identical \
-                                 sizes.")
+            raise ControlArgument(
+                "A and Q must be matrices of identical                                 "
+                " sizes."
+            )
 
         if size(A) > 1 and shape(A)[0] != shape(A)[1]:
             raise ControlArgument("A must be a quadratic matrix.")
@@ -336,15 +369,16 @@ def dlyap(A, Q, C=None, E=None):
 
         # Solve the Lyapunov equation by calling the Slycot function sb03md
         try:
-            X, scale, sep, ferr, w = \
-                sb03md(n, -Q, A, eye(n, n), 'D', trana='T')
+            X, scale, sep, ferr, w = sb03md(n, -Q, A, eye(n, n), "D", trana="T")
         except ValueError as ve:
             if ve.info < 0:
                 e = ValueError(ve.message)
                 e.info = ve.info
             else:
-                e = ValueError("The QR algorithm failed to compute all the \
-                    eigenvalues (see LAPACK Library routine DGEES).")
+                e = ValueError(
+                    "The QR algorithm failed to compute all the                    "
+                    " eigenvalues (see LAPACK Library routine DGEES)."
+                )
                 e.info = ve.info
             raise e
 
@@ -357,9 +391,12 @@ def dlyap(A, Q, C=None, E=None):
         if size(Q) > 1 and shape(Q)[0] != shape(Q)[1]:
             raise ControlArgument("Q must be a quadratic matrix")
 
-        if (size(C) > 1 and shape(C)[0] != n) or \
-           (size(C) > 1 and shape(C)[1] != m) or \
-           (size(C) == 1 and size(A) != 1) or (size(C) == 1 and size(Q) != 1):
+        if (
+            (size(C) > 1 and shape(C)[0] != n)
+            or (size(C) > 1 and shape(C)[1] != m)
+            or (size(C) == 1 and size(A) != 1)
+            or (size(C) == 1 and size(Q) != 1)
+        ):
             raise ControlArgument("C matrix has incompatible dimensions")
 
         # Solve the Sylvester equation by calling Slycot function sb04qd
@@ -370,29 +407,43 @@ def dlyap(A, Q, C=None, E=None):
                 e = ValueError(ve.message)
                 e.info = ve.info
             elif ve.info > m:
-                e = ValueError("A singular matrix was encountered whilst \
-                    solving for the %i-th column of matrix X." % ve.info-m)
+                e = ValueError(
+                    "A singular matrix was encountered whilst                    "
+                    " solving for the %i-th column of matrix X."
+                    % ve.info
+                    - m
+                )
                 e.info = ve.info
             else:
-                e = ValueError("The QR algorithm failed to compute all the \
-                    eigenvalues (see LAPACK Library routine DGEES)")
+                e = ValueError(
+                    "The QR algorithm failed to compute all the                    "
+                    " eigenvalues (see LAPACK Library routine DGEES)"
+                )
                 e.info = ve.info
             raise e
 
     # Solve the generalized Lyapunov equation
     elif C is None and E is not None:
         # Check input data for consistency
-        if (size(Q) > 1 and shape(Q)[0] != shape(Q)[1]) or \
-           (size(Q) > 1 and shape(Q)[0] != n) or \
-           (size(Q) == 1 and n > 1):
-            raise ControlArgument("Q must be a square matrix with the same \
-                dimension as A.")
+        if (
+            (size(Q) > 1 and shape(Q)[0] != shape(Q)[1])
+            or (size(Q) > 1 and shape(Q)[0] != n)
+            or (size(Q) == 1 and n > 1)
+        ):
+            raise ControlArgument(
+                "Q must be a square matrix with the same                 dimension"
+                " as A."
+            )
 
-        if (size(E) > 1 and shape(E)[0] != shape(E)[1]) or \
-           (size(E) > 1 and shape(E)[0] != n) or \
-           (size(E) == 1 and n > 1):
-            raise ControlArgument("E must be a square matrix with the same \
-                dimension as A.")
+        if (
+            (size(E) > 1 and shape(E)[0] != shape(E)[1])
+            or (size(E) > 1 and shape(E)[0] != n)
+            or (size(E) == 1 and n > 1)
+        ):
+            raise ControlArgument(
+                "E must be a square matrix with the same                 dimension"
+                " as A."
+            )
 
         if not _is_symmetric(Q):
             raise ControlArgument("Q must be a symmetric matrix.")
@@ -400,32 +451,39 @@ def dlyap(A, Q, C=None, E=None):
         # Solve the generalized Lyapunov equation by calling Slycot
         # function sg03ad
         try:
-            A, E, Q, Z, X, scale, sep, ferr, alphar, alphai, beta = \
-                sg03ad('D', 'B', 'N', 'T', 'L', n,
-                       A, E, eye(n, n), eye(n, n), -Q)
+            A, E, Q, Z, X, scale, sep, ferr, alphar, alphai, beta = sg03ad(
+                "D", "B", "N", "T", "L", n, A, E, eye(n, n), eye(n, n), -Q
+            )
         except ValueError as ve:
             if ve.info < 0 or ve.info > 4:
                 e = ValueError(ve.message)
                 e.info = ve.info
             elif ve.info == 1:
-                e = ValueError("The matrix contained in the upper \
-                                Hessenberg part of the array A is not in \
-                                upper quasitriangular form")
+                e = ValueError(
+                    "The matrix contained in the upper                                "
+                    " Hessenberg part of the array A is not in                         "
+                    "        upper quasitriangular form"
+                )
                 e.info = ve.info
             elif ve.info == 2:
-                e = ValueError("The pencil A - lambda * E cannot be \
-                                reduced to generalized Schur form: LAPACK \
-                                routine DGEGS has failed to converge")
+                e = ValueError(
+                    "The pencil A - lambda * E cannot be                               "
+                    "  reduced to generalized Schur form: LAPACK                       "
+                    "          routine DGEGS has failed to converge"
+                )
                 e.info = ve.info
             elif ve.info == 3:
-                e = ValueError("The pencil A - lambda * E has a \
-                                pair of reciprocal eigenvalues. That is, \
-                                lambda_i = 1/lambda_j for some i and j, \
-                                where  lambda_i and lambda_j are eigenvalues \
-                                of A - lambda * E. Hence, the equation is \
-                                singular;  perturbed values were \
-                                used to solve the equation (but the \
-                                matrices A and E are unchanged)")
+                e = ValueError(
+                    "The pencil A - lambda * E has a                                "
+                    " pair of reciprocal eigenvalues. That is,                         "
+                    "        lambda_i = 1/lambda_j for some i and j,                   "
+                    "              where  lambda_i and lambda_j are eigenvalues        "
+                    "                         of A - lambda * E. Hence, the equation is"
+                    "                                 singular;  perturbed values were "
+                    "                                used to solve the equation (but"
+                    " the                                 matrices A and E are"
+                    " unchanged)"
+                )
                 e.info = ve.info
             raise e
     # Invalid set of input parameters
@@ -541,14 +599,18 @@ def care(A, B, Q, R=None, S=None, E=None, stabilizing=True):
         if size(A) > 1 and shape(A)[0] != shape(A)[1]:
             raise ControlArgument("A must be a quadratic matrix.")
 
-        if (size(Q) > 1 and shape(Q)[0] != shape(Q)[1]) or \
-           (size(Q) > 1 and shape(Q)[0] != n) or \
-           size(Q) == 1 and n > 1:
-            raise ControlArgument("Q must be a quadratic matrix of the same \
-                dimension as A.")
+        if (
+            (size(Q) > 1 and shape(Q)[0] != shape(Q)[1])
+            or (size(Q) > 1 and shape(Q)[0] != n)
+            or size(Q) == 1
+            and n > 1
+        ):
+            raise ControlArgument(
+                "Q must be a quadratic matrix of the same                 dimension"
+                " as A."
+            )
 
-        if (size(B) > 1 and shape(B)[0] != n) or \
-           size(B) == 1 and n > 1:
+        if (size(B) > 1 and shape(B)[0] != n) or size(B) == 1 and n > 1:
             raise ControlArgument("Incompatible dimensions of B matrix.")
 
         if not _is_symmetric(Q):
@@ -569,50 +631,63 @@ def care(A, B, Q, R=None, S=None, E=None, stabilizing=True):
             if ve.info < 0:
                 e = ValueError(ve.message)
                 e.info = ve.info
-            elif ve.info == m+1:
+            elif ve.info == m + 1:
                 e = ValueError("The matrix R is numerically singular.")
                 e.info = ve.info
             else:
-                e = ValueError("The %i-th element of d in the UdU (LdL) \
-                    factorization is zero." % ve.info)
+                e = ValueError(
+                    "The %i-th element of d in the UdU (LdL)                    "
+                    " factorization is zero."
+                    % ve.info
+                )
                 e.info = ve.info
             raise e
 
         try:
             if stabilizing:
-                sort = 'S'
+                sort = "S"
             else:
-                sort = 'U'
-            X, rcond, w, S_o, U, A_inv = sb02md(n, A, G, Q, 'C', sort=sort)
+                sort = "U"
+            X, rcond, w, S_o, U, A_inv = sb02md(n, A, G, Q, "C", sort=sort)
         except ValueError as ve:
             if ve.info < 0 or ve.info > 5:
                 e = ValueError(ve.message)
                 e.info = ve.info
             elif ve.info == 1:
-                e = ValueError("The matrix A is (numerically) singular in \
-                    continuous-time case.")
+                e = ValueError(
+                    "The matrix A is (numerically) singular in                    "
+                    " continuous-time case."
+                )
                 e.info = ve.info
             elif ve.info == 2:
-                e = ValueError("The Hamiltonian or symplectic matrix H cannot \
-                    be reduced to real Schur form.")
+                e = ValueError(
+                    "The Hamiltonian or symplectic matrix H cannot                    "
+                    " be reduced to real Schur form."
+                )
                 e.info = ve.info
             elif ve.info == 3:
-                e = ValueError("The real Schur form of the Hamiltonian or \
-                    symplectic matrix H cannot be appropriately ordered.")
+                e = ValueError(
+                    "The real Schur form of the Hamiltonian or                    "
+                    " symplectic matrix H cannot be appropriately ordered."
+                )
                 e.info = ve.info
             elif ve.info == 4:
-                e = ValueError("The Hamiltonian or symplectic matrix H has \
-                    less than n stable eigenvalues.")
+                e = ValueError(
+                    "The Hamiltonian or symplectic matrix H has                    "
+                    " less than n stable eigenvalues."
+                )
                 e.info = ve.info
             elif ve.info == 5:
-                e = ValueError("The N-th order system of linear algebraic \
-                         equations is singular to working precision.")
+                e = ValueError(
+                    "The N-th order system of linear algebraic                         "
+                    " equations is singular to working precision."
+                )
                 e.info = ve.info
             raise e
 
         # Calculate the gain matrix G
         if size(R_b) == 1:
-            G = dot(dot(1/(R_ba), asarray(B_ba).T), X)
+            G = dot(dot(1 / (R_ba), asarray(B_ba).T), X)
         else:
             G = dot(solve(R_ba, asarray(B_ba).T), X)
 
@@ -626,32 +701,50 @@ def care(A, B, Q, R=None, S=None, E=None, stabilizing=True):
         if size(A) > 1 and shape(A)[0] != shape(A)[1]:
             raise ControlArgument("A must be a quadratic matrix.")
 
-        if (size(Q) > 1 and shape(Q)[0] != shape(Q)[1]) or \
-           (size(Q) > 1 and shape(Q)[0] != n) or \
-           size(Q) == 1 and n > 1:
-            raise ControlArgument("Q must be a quadratic matrix of the same \
-                dimension as A.")
+        if (
+            (size(Q) > 1 and shape(Q)[0] != shape(Q)[1])
+            or (size(Q) > 1 and shape(Q)[0] != n)
+            or size(Q) == 1
+            and n > 1
+        ):
+            raise ControlArgument(
+                "Q must be a quadratic matrix of the same                 dimension"
+                " as A."
+            )
 
-        if (size(B) > 1 and shape(B)[0] != n) or \
-           size(B) == 1 and n > 1:
+        if (size(B) > 1 and shape(B)[0] != n) or size(B) == 1 and n > 1:
             raise ControlArgument("Incompatible dimensions of B matrix.")
 
-        if (size(E) > 1 and shape(E)[0] != shape(E)[1]) or \
-           (size(E) > 1 and shape(E)[0] != n) or \
-           size(E) == 1 and n > 1:
-            raise ControlArgument("E must be a quadratic matrix of the same \
-                dimension as A.")
+        if (
+            (size(E) > 1 and shape(E)[0] != shape(E)[1])
+            or (size(E) > 1 and shape(E)[0] != n)
+            or size(E) == 1
+            and n > 1
+        ):
+            raise ControlArgument(
+                "E must be a quadratic matrix of the same                 dimension"
+                " as A."
+            )
 
-        if (size(R) > 1 and shape(R)[0] != shape(R)[1]) or \
-           (size(R) > 1 and shape(R)[0] != m) or \
-           size(R) == 1 and m > 1:
-            raise ControlArgument("R must be a quadratic matrix of the same \
-                dimension as the number of columns in the B matrix.")
+        if (
+            (size(R) > 1 and shape(R)[0] != shape(R)[1])
+            or (size(R) > 1 and shape(R)[0] != m)
+            or size(R) == 1
+            and m > 1
+        ):
+            raise ControlArgument(
+                "R must be a quadratic matrix of the same                 dimension as"
+                " the number of columns in the B matrix."
+            )
 
-        if (size(S) > 1 and shape(S)[0] != n) or \
-           (size(S) > 1 and shape(S)[1] != m) or \
-           size(S) == 1 and n > 1 or \
-           size(S) == 1 and m > 1:
+        if (
+            (size(S) > 1 and shape(S)[0] != n)
+            or (size(S) > 1 and shape(S)[1] != m)
+            or size(S) == 1
+            and n > 1
+            or size(S) == 1
+            and m > 1
+        ):
             raise ControlArgument("Incompatible dimensions of S matrix.")
 
         if not _is_symmetric(Q):
@@ -670,57 +763,69 @@ def care(A, B, Q, R=None, S=None, E=None, stabilizing=True):
         # Slycot function sg02ad
         try:
             if stabilizing:
-                sort = 'S'
+                sort = "S"
             else:
-                sort = 'U'
-            rcondu, X, alfar, alfai, beta, S_o, T, U, iwarn = \
-                sg02ad('C', 'B', 'N', 'U', 'N', 'N', sort,
-                       'R', n, m, 0, A, E, B, Q, R, S)
+                sort = "U"
+            rcondu, X, alfar, alfai, beta, S_o, T, U, iwarn = sg02ad(
+                "C", "B", "N", "U", "N", "N", sort, "R", n, m, 0, A, E, B, Q, R, S
+            )
         except ValueError as ve:
             if ve.info < 0 or ve.info > 7:
                 e = ValueError(ve.message)
                 e.info = ve.info
             elif ve.info == 1:
-                e = ValueError("The computed extended matrix pencil is \
-                            singular, possibly due to rounding errors.")
+                e = ValueError(
+                    "The computed extended matrix pencil is                            "
+                    " singular, possibly due to rounding errors."
+                )
                 e.info = ve.info
             elif ve.info == 2:
                 e = ValueError("The QZ algorithm failed.")
                 e.info = ve.info
             elif ve.info == 3:
-                e = ValueError("Reordering of the generalized eigenvalues \
-                    failed.")
+                e = ValueError(
+                    "Reordering of the generalized eigenvalues                    "
+                    " failed."
+                )
                 e.info = ve.info
             elif ve.info == 4:
-                e = ValueError("After reordering, roundoff changed values of \
-                            some complex eigenvalues so that leading \
-                            eigenvalues in the generalized Schur form no \
-                            longer satisfy the stability condition; this \
-                            could also be caused due to scaling.")
+                e = ValueError(
+                    "After reordering, roundoff changed values of                      "
+                    "       some complex eigenvalues so that leading                   "
+                    "          eigenvalues in the generalized Schur form no            "
+                    "                 longer satisfy the stability condition; this     "
+                    "                        could also be caused due to scaling."
+                )
                 e.info = ve.info
             elif ve.info == 5:
-                e = ValueError("The computed dimension of the solution does \
-                            not equal N.")
+                e = ValueError(
+                    "The computed dimension of the solution does                       "
+                    "      not equal N."
+                )
                 e.info = ve.info
             elif ve.info == 6:
-                e = ValueError("The spectrum is too close to the boundary of \
-                            the stability domain.")
+                e = ValueError(
+                    "The spectrum is too close to the boundary of                      "
+                    "       the stability domain."
+                )
                 e.info = ve.info
             elif ve.info == 7:
-                e = ValueError("A singular matrix was encountered during the \
-                            computation of the solution matrix X.")
+                e = ValueError(
+                    "A singular matrix was encountered during the                      "
+                    "       computation of the solution matrix X."
+                )
                 e.info = ve.info
             raise e
 
         # Calculate the closed-loop eigenvalues L
         L = zeros((n, 1))
-        L.dtype = 'complex64'
+        L.dtype = "complex64"
         for i in range(n):
-            L[i] = (alfar[i] + alfai[i]*1j)/beta[i]
+            L[i] = (alfar[i] + alfai[i] * 1j) / beta[i]
 
         # Calculate the gain matrix G
         if size(R_b) == 1:
-            G = dot(1/(R_b), dot(asarray(B_b).T, dot(X, E_b)) + asarray(S_b).T)
+            G = dot(1 / (R_b), dot(asarray(B_b).T, dot(X, E_b)) + asarray(S_b).T)
         else:
             G = solve(R_b, dot(asarray(B_b).T, dot(X, E_b)) + asarray(S_b).T)
 
@@ -841,14 +946,18 @@ def dare_old(A, B, Q, R, S=None, E=None, stabilizing=True):
         if size(A) > 1 and shape(A)[0] != shape(A)[1]:
             raise ControlArgument("A must be a quadratic matrix.")
 
-        if (size(Q) > 1 and shape(Q)[0] != shape(Q)[1]) or \
-           (size(Q) > 1 and shape(Q)[0] != n) or \
-           size(Q) == 1 and n > 1:
-            raise ControlArgument("Q must be a quadratic matrix of the same \
-                dimension as A.")
+        if (
+            (size(Q) > 1 and shape(Q)[0] != shape(Q)[1])
+            or (size(Q) > 1 and shape(Q)[0] != n)
+            or size(Q) == 1
+            and n > 1
+        ):
+            raise ControlArgument(
+                "Q must be a quadratic matrix of the same                 dimension"
+                " as A."
+            )
 
-        if (size(B) > 1 and shape(B)[0] != n) or \
-           size(B) == 1 and n > 1:
+        if (size(B) > 1 and shape(B)[0] != n) or size(B) == 1 and n > 1:
             raise ControlArgument("Incompatible dimensions of B matrix.")
 
         if not _is_symmetric(Q):
@@ -870,55 +979,72 @@ def dare_old(A, B, Q, R, S=None, E=None, stabilizing=True):
             if ve.info < 0:
                 e = ValueError(ve.message)
                 e.info = ve.info
-            elif ve.info == m+1:
+            elif ve.info == m + 1:
                 e = ValueError("The matrix R is numerically singular.")
                 e.info = ve.info
             else:
-                e = ValueError("The %i-th element of d in the UdU (LdL) \
-                     factorization is zero." % ve.info)
+                e = ValueError(
+                    "The %i-th element of d in the UdU (LdL)                     "
+                    " factorization is zero."
+                    % ve.info
+                )
                 e.info = ve.info
             raise e
 
         try:
             if stabilizing:
-                sort = 'S'
+                sort = "S"
             else:
-                sort = 'U'
+                sort = "U"
 
-            X, rcond, w, S, U, A_inv = sb02md(n, A, G, Q, 'D', sort=sort)
+            X, rcond, w, S, U, A_inv = sb02md(n, A, G, Q, "D", sort=sort)
         except ValueError as ve:
             if ve.info < 0 or ve.info > 5:
                 e = ValueError(ve.message)
                 e.info = ve.info
             elif ve.info == 1:
-                e = ValueError("The matrix A is (numerically) singular in \
-                    discrete-time case.")
+                e = ValueError(
+                    "The matrix A is (numerically) singular in                    "
+                    " discrete-time case."
+                )
                 e.info = ve.info
             elif ve.info == 2:
-                e = ValueError("The Hamiltonian or symplectic matrix H cannot \
-                    be reduced to real Schur form.")
+                e = ValueError(
+                    "The Hamiltonian or symplectic matrix H cannot                    "
+                    " be reduced to real Schur form."
+                )
                 e.info = ve.info
             elif ve.info == 3:
-                e = ValueError("The real Schur form of the Hamiltonian or \
-                     symplectic matrix H cannot be appropriately ordered.")
+                e = ValueError(
+                    "The real Schur form of the Hamiltonian or                     "
+                    " symplectic matrix H cannot be appropriately ordered."
+                )
                 e.info = ve.info
             elif ve.info == 4:
-                e = ValueError("The Hamiltonian or symplectic matrix H has \
-                     less than n stable eigenvalues.")
+                e = ValueError(
+                    "The Hamiltonian or symplectic matrix H has                     "
+                    " less than n stable eigenvalues."
+                )
                 e.info = ve.info
             elif ve.info == 5:
-                e = ValueError("The N-th order system of linear algebraic \
-                     equations is singular to working precision.")
+                e = ValueError(
+                    "The N-th order system of linear algebraic                     "
+                    " equations is singular to working precision."
+                )
                 e.info = ve.info
             raise e
 
         # Calculate the gain matrix G
         if size(R_b) == 1:
-            G = dot(1/(dot(asarray(B_ba).T, dot(X, B_ba)) + R_ba),
-                    dot(asarray(B_ba).T, dot(X, A_ba)))
+            G = dot(
+                1 / (dot(asarray(B_ba).T, dot(X, B_ba)) + R_ba),
+                dot(asarray(B_ba).T, dot(X, A_ba)),
+            )
         else:
-            G = solve(dot(asarray(B_ba).T, dot(X, B_ba)) + R_ba,
-                      dot(asarray(B_ba).T, dot(X, A_ba)))
+            G = solve(
+                dot(asarray(B_ba).T, dot(X, B_ba)) + R_ba,
+                dot(asarray(B_ba).T, dot(X, A_ba)),
+            )
 
         # Return the solution X, the closed-loop eigenvalues L and
         # the gain matrix G
@@ -930,32 +1056,50 @@ def dare_old(A, B, Q, R, S=None, E=None, stabilizing=True):
         if size(A) > 1 and shape(A)[0] != shape(A)[1]:
             raise ControlArgument("A must be a quadratic matrix.")
 
-        if (size(Q) > 1 and shape(Q)[0] != shape(Q)[1]) or \
-           (size(Q) > 1 and shape(Q)[0] != n) or \
-           size(Q) == 1 and n > 1:
-            raise ControlArgument("Q must be a quadratic matrix of the same \
-                dimension as A.")
+        if (
+            (size(Q) > 1 and shape(Q)[0] != shape(Q)[1])
+            or (size(Q) > 1 and shape(Q)[0] != n)
+            or size(Q) == 1
+            and n > 1
+        ):
+            raise ControlArgument(
+                "Q must be a quadratic matrix of the same                 dimension"
+                " as A."
+            )
 
-        if (size(B) > 1 and shape(B)[0] != n) or \
-           size(B) == 1 and n > 1:
+        if (size(B) > 1 and shape(B)[0] != n) or size(B) == 1 and n > 1:
             raise ControlArgument("Incompatible dimensions of B matrix.")
 
-        if (size(E) > 1 and shape(E)[0] != shape(E)[1]) or \
-           (size(E) > 1 and shape(E)[0] != n) or \
-           size(E) == 1 and n > 1:
-            raise ControlArgument("E must be a quadratic matrix of the same \
-                dimension as A.")
+        if (
+            (size(E) > 1 and shape(E)[0] != shape(E)[1])
+            or (size(E) > 1 and shape(E)[0] != n)
+            or size(E) == 1
+            and n > 1
+        ):
+            raise ControlArgument(
+                "E must be a quadratic matrix of the same                 dimension"
+                " as A."
+            )
 
-        if (size(R) > 1 and shape(R)[0] != shape(R)[1]) or \
-           (size(R) > 1 and shape(R)[0] != m) or \
-           size(R) == 1 and m > 1:
-            raise ControlArgument("R must be a quadratic matrix of the same \
-                dimension as the number of columns in the B matrix.")
+        if (
+            (size(R) > 1 and shape(R)[0] != shape(R)[1])
+            or (size(R) > 1 and shape(R)[0] != m)
+            or size(R) == 1
+            and m > 1
+        ):
+            raise ControlArgument(
+                "R must be a quadratic matrix of the same                 dimension as"
+                " the number of columns in the B matrix."
+            )
 
-        if (size(S) > 1 and shape(S)[0] != n) or \
-           (size(S) > 1 and shape(S)[1] != m) or \
-           size(S) == 1 and n > 1 or \
-           size(S) == 1 and m > 1:
+        if (
+            (size(S) > 1 and shape(S)[0] != n)
+            or (size(S) > 1 and shape(S)[1] != m)
+            or size(S) == 1
+            and n > 1
+            or size(S) == 1
+            and m > 1
+        ):
             raise ControlArgument("Incompatible dimensions of S matrix.")
 
         if not _is_symmetric(Q):
@@ -975,60 +1119,76 @@ def dare_old(A, B, Q, R, S=None, E=None, stabilizing=True):
         # Slycot function sg02ad
         try:
             if stabilizing:
-                sort = 'S'
+                sort = "S"
             else:
-                sort = 'U'
-            rcondu, X, alfar, alfai, beta, S_o, T, U, iwarn = \
-                sg02ad('D', 'B', 'N', 'U', 'N', 'N', sort,
-                       'R', n, m, 0, A, E, B, Q, R, S)
+                sort = "U"
+            rcondu, X, alfar, alfai, beta, S_o, T, U, iwarn = sg02ad(
+                "D", "B", "N", "U", "N", "N", sort, "R", n, m, 0, A, E, B, Q, R, S
+            )
         except ValueError as ve:
             if ve.info < 0 or ve.info > 7:
                 e = ValueError(ve.message)
                 e.info = ve.info
             elif ve.info == 1:
-                e = ValueError("The computed extended matrix pencil is \
-                            singular, possibly due to rounding errors.")
+                e = ValueError(
+                    "The computed extended matrix pencil is                            "
+                    " singular, possibly due to rounding errors."
+                )
                 e.info = ve.info
             elif ve.info == 2:
                 e = ValueError("The QZ algorithm failed.")
                 e.info = ve.info
             elif ve.info == 3:
-                e = ValueError("Reordering of the generalized eigenvalues \
-                     failed.")
+                e = ValueError(
+                    "Reordering of the generalized eigenvalues                     "
+                    " failed."
+                )
                 e.info = ve.info
             elif ve.info == 4:
-                e = ValueError("After reordering, roundoff changed values of \
-                            some complex eigenvalues so that leading \
-                            eigenvalues in the generalized Schur form no \
-                            longer satisfy the stability condition; this \
-                            could also be caused due to scaling.")
+                e = ValueError(
+                    "After reordering, roundoff changed values of                      "
+                    "       some complex eigenvalues so that leading                   "
+                    "          eigenvalues in the generalized Schur form no            "
+                    "                 longer satisfy the stability condition; this     "
+                    "                        could also be caused due to scaling."
+                )
                 e.info = ve.info
             elif ve.info == 5:
-                e = ValueError("The computed dimension of the solution does \
-                            not equal N.")
+                e = ValueError(
+                    "The computed dimension of the solution does                       "
+                    "      not equal N."
+                )
                 e.info = ve.info
             elif ve.info == 6:
-                e = ValueError("The spectrum is too close to the boundary of \
-                            the stability domain.")
+                e = ValueError(
+                    "The spectrum is too close to the boundary of                      "
+                    "       the stability domain."
+                )
                 e.info = ve.info
             elif ve.info == 7:
-                e = ValueError("A singular matrix was encountered during the \
-                            computation of the solution matrix X.")
+                e = ValueError(
+                    "A singular matrix was encountered during the                      "
+                    "       computation of the solution matrix X."
+                )
                 e.info = ve.info
             raise e
 
         L = zeros((n, 1))
-        L.dtype = 'complex64'
+        L.dtype = "complex64"
         for i in range(n):
-            L[i] = (alfar[i] + alfai[i]*1j)/beta[i]
+            L[i] = (alfar[i] + alfai[i] * 1j) / beta[i]
 
         # Calculate the gain matrix G
         if size(R_b) == 1:
-            G = dot(1/(dot(asarray(B_b).T, dot(X, B_b)) + R_b),
-                    dot(asarray(B_b).T, dot(X, A_b)) + asarray(S_b).T)
+            G = dot(
+                1 / (dot(asarray(B_b).T, dot(X, B_b)) + R_b),
+                dot(asarray(B_b).T, dot(X, A_b)) + asarray(S_b).T,
+            )
         else:
-            G = solve(dot(asarray(B_b).T, dot(X, B_b)) + R_b,
-                      dot(asarray(B_b).T, dot(X, A_b)) + asarray(S_b).T)
+            G = solve(
+                dot(asarray(B_b).T, dot(X, B_b)) + R_b,
+                dot(asarray(B_b).T, dot(X, A_b)) + asarray(S_b).T,
+            )
 
         # Return the solution X, the closed-loop eigenvalues L and
         # the gain matrix G

@@ -2,14 +2,23 @@
 
 RMM, 9 Sep 2012
 """
-
 import numpy as np
 import pytest
 
-from control import (StateSpace, TransferFunction, bode, common_timebase,
-                     evalfr, feedback, forced_response, impulse_response,
-                     isctime, isdtime, rss, sample_system, step_response,
-                     timebase)
+from control import bode
+from control import common_timebase
+from control import evalfr
+from control import feedback
+from control import forced_response
+from control import impulse_response
+from control import isctime
+from control import isdtime
+from control import rss
+from control import sample_system
+from control import StateSpace
+from control import step_response
+from control import timebase
+from control import TransferFunction
 
 
 class TestDiscrete:
@@ -18,8 +27,10 @@ class TestDiscrete:
     @pytest.fixture
     def tsys(self):
         """Create some systems for testing"""
+
         class Tsys:
             pass
+
         T = Tsys()
         # Single input, single output continuous and discrete time systems
         sys = rss(3, 1, 1)
@@ -30,10 +41,10 @@ class TestDiscrete:
         T.siso_ss3d = StateSpace(sys.A, sys.B, sys.C, sys.D, True)
 
         # Two input, two output continuous time system
-        A = [[-3., 4., 2.], [-1., -3., 0.], [2., 5., 3.]]
-        B = [[1., 4.], [-3., -3.], [-2., 1.]]
-        C = [[4., 2., -3.], [1., 4., 3.]]
-        D = [[-2., 4.], [0., 1.]]
+        A = [[-3.0, 4.0, 2.0], [-1.0, -3.0, 0.0], [2.0, 5.0, 3.0]]
+        B = [[1.0, 4.0], [-3.0, -3.0], [-2.0, 1.0]]
+        C = [[4.0, 2.0, -3.0], [1.0, 4.0, 3.0]]
+        D = [[-2.0, 4.0], [0.0, 1.0]]
         T.mimo_ss1 = StateSpace(A, B, C, D, None)
         T.mimo_ss1c = StateSpace(A, B, C, D, 0)
 
@@ -88,13 +99,13 @@ class TestDiscrete:
         # dynamic systems
         assert TransferFunction(1, [1, 1], dt=0.1).dt == 0.1
         assert TransferFunction(1, [1, 1], 0.1).dt == 0.1
-        assert StateSpace(1,1,1,1, dt=0.1).dt == 0.1
-        assert StateSpace(1,1,1,1, 0.1).dt == 0.1
+        assert StateSpace(1, 1, 1, 1, dt=0.1).dt == 0.1
+        assert StateSpace(1, 1, 1, 1, 0.1).dt == 0.1
         # static gain system, dt argument should still override default dt
         assert TransferFunction(1, [1,], dt=0.1).dt == 0.1
         assert TransferFunction(1, [1,], 0.1).dt == 0.1
-        assert StateSpace(0,0,1,1, dt=0.1).dt == 0.1
-        assert StateSpace(0,0,1,1, 0.1).dt == 0.1
+        assert StateSpace(0, 0, 1, 1, dt=0.1).dt == 0.1
+        assert StateSpace(0, 0, 1, 1, 0.1).dt == 0.1
 
     def testCopyConstructor(self, tsys):
         for sys in (tsys.siso_ss1, tsys.siso_ss1c, tsys.siso_ss1d):
@@ -124,35 +135,35 @@ class TestDiscrete:
         assert timebase(tsys.siso_tf3d, strict=False) == 1
 
     def test_timebase_conversions(self, tsys):
-        '''Check to make sure timebases transfer properly'''
+        """Check to make sure timebases transfer properly"""
         tf1 = TransferFunction([1, 1], [1, 2, 3], None)  # unspecified
-        tf2 = TransferFunction([1, 1], [1, 2, 3], 0)     # cont time
+        tf2 = TransferFunction([1, 1], [1, 2, 3], 0)  # cont time
         tf3 = TransferFunction([1, 1], [1, 2, 3], True)  # dtime, unspec
-        tf4 = TransferFunction([1, 1], [1, 2, 3], .1)    # dtime, dt=.1
+        tf4 = TransferFunction([1, 1], [1, 2, 3], 0.1)  # dtime, dt=.1
 
         # Make sure unspecified timebase is converted correctly
-        assert timebase(tf1*tf1) == timebase(tf1)
-        assert timebase(tf1*tf2) == timebase(tf2)
-        assert timebase(tf1*tf3) == timebase(tf3)
-        assert timebase(tf1*tf4) == timebase(tf4)
-        assert timebase(tf3*tf4) == timebase(tf4)
-        assert timebase(tf2*tf1) == timebase(tf2)
-        assert timebase(tf3*tf1) == timebase(tf3)
-        assert timebase(tf4*tf1) == timebase(tf4)
-        assert timebase(tf1+tf1) == timebase(tf1)
-        assert timebase(tf1+tf2) == timebase(tf2)
-        assert timebase(tf1+tf3) == timebase(tf3)
-        assert timebase(tf1+tf4) == timebase(tf4)
+        assert timebase(tf1 * tf1) == timebase(tf1)
+        assert timebase(tf1 * tf2) == timebase(tf2)
+        assert timebase(tf1 * tf3) == timebase(tf3)
+        assert timebase(tf1 * tf4) == timebase(tf4)
+        assert timebase(tf3 * tf4) == timebase(tf4)
+        assert timebase(tf2 * tf1) == timebase(tf2)
+        assert timebase(tf3 * tf1) == timebase(tf3)
+        assert timebase(tf4 * tf1) == timebase(tf4)
+        assert timebase(tf1 + tf1) == timebase(tf1)
+        assert timebase(tf1 + tf2) == timebase(tf2)
+        assert timebase(tf1 + tf3) == timebase(tf3)
+        assert timebase(tf1 + tf4) == timebase(tf4)
         assert timebase(feedback(tf1, tf1)) == timebase(tf1)
         assert timebase(feedback(tf1, tf2)) == timebase(tf2)
         assert timebase(feedback(tf1, tf3)) == timebase(tf3)
         assert timebase(feedback(tf1, tf4)) == timebase(tf4)
 
         # Make sure discrete time without sampling is converted correctly
-        assert timebase(tf3*tf3) == timebase(tf3)
-        assert timebase(tf3*tf4) == timebase(tf4)
-        assert timebase(tf3+tf3) == timebase(tf3)
-        assert timebase(tf3+tf4) == timebase(tf4)
+        assert timebase(tf3 * tf3) == timebase(tf3)
+        assert timebase(tf3 * tf4) == timebase(tf4)
+        assert timebase(tf3 + tf3) == timebase(tf3)
+        assert timebase(tf3 + tf4) == timebase(tf4)
         assert timebase(feedback(tf3, tf3)) == timebase(tf3)
         assert timebase(feedback(tf3, tf4)) == timebase(tf4)
 
@@ -302,9 +313,7 @@ class TestDiscrete:
         sys = tsys.siso_ss1d * tsys.siso_tf1d
         sys = tsys.siso_tf1d * tsys.siso_ss1d
         with pytest.raises(ValueError):
-            TransferFunction.__mul__(tsys.siso_tf1c,
-                          tsys.siso_ss1d)
-
+            TransferFunction.__mul__(tsys.siso_tf1c, tsys.siso_ss1d)
 
     def testFeedback(self, tsys):
         # State space feedback
@@ -356,14 +365,18 @@ class TestDiscrete:
         tout, yout = forced_response(tsys.siso_ss1d, T, U, 0)
         tout, yout = forced_response(tsys.siso_ss2d, T, U, 0)
         tout, yout = forced_response(tsys.siso_ss3d, T, U, 0)
-        tout, yout, xout = forced_response(tsys.siso_ss1d, T, U, 0,
-                                           return_x=True)
+        tout, yout, xout = forced_response(tsys.siso_ss1d, T, U, 0, return_x=True)
 
     def test_sample_system(self, tsys):
         # Make sure we can convert various types of systems
-        for sysc in (tsys.siso_tf1, tsys.siso_tf1c,
-                     tsys.siso_ss1, tsys.siso_ss1c,
-                     tsys.mimo_ss1, tsys.mimo_ss1c):
+        for sysc in (
+            tsys.siso_tf1,
+            tsys.siso_tf1c,
+            tsys.siso_ss1,
+            tsys.siso_ss1c,
+            tsys.mimo_ss1,
+            tsys.mimo_ss1c,
+        ):
             for method in ("zoh", "bilinear", "euler", "backward_diff"):
                 sysd = sample_system(sysc, 1, method=method)
                 assert sysd.dt == 1
@@ -373,19 +386,17 @@ class TestDiscrete:
             sysd = sample_system(sysc, 1, method="matched")
             assert sysd.dt == 1
 
-    @pytest.mark.parametrize("plantname",
-                             ["siso_ss1c",
-                              "siso_tf1c"])
+    @pytest.mark.parametrize("plantname", ["siso_ss1c", "siso_tf1c"])
     def test_sample_system_prewarp(self, tsys, plantname):
         """bilinear approximation with prewarping test"""
         wwarp = 50
         Ts = 0.025
         # test state space version
         plant = getattr(tsys, plantname)
-        plant_d_warped = plant.sample(Ts, 'bilinear', prewarp_frequency=wwarp)
+        plant_d_warped = plant.sample(Ts, "bilinear", prewarp_frequency=wwarp)
         plant_fr = evalfr(plant, wwarp * 1j)
         dt = plant_d_warped.dt
-        plant_d_fr = evalfr(plant_d_warped, np.exp(wwarp * 1.j * dt))
+        plant_d_fr = evalfr(plant_d_warped, np.exp(wwarp * 1.0j * dt))
         np.testing.assert_array_almost_equal(plant_fr, plant_d_fr)
 
     def test_sample_system_errors(self, tsys):
@@ -395,19 +406,18 @@ class TestDiscrete:
         with pytest.raises(ValueError):
             sample_system(tsys.siso_tf1d, 1)
         with pytest.raises(ValueError):
-            sample_system(tsys.siso_ss1, 1, 'unknown')
-
+            sample_system(tsys.siso_ss1, 1, "unknown")
 
     def test_sample_ss(self, tsys):
         # double integrators, two different ways
-        sys1 = StateSpace([[0.,1.],[0.,0.]], [[0.],[1.]], [[1.,0.]], 0.)
-        sys2 = StateSpace([[0.,0.],[1.,0.]], [[1.],[0.]], [[0.,1.]], 0.)
+        sys1 = StateSpace([[0.0, 1.0], [0.0, 0.0]], [[0.0], [1.0]], [[1.0, 0.0]], 0.0)
+        sys2 = StateSpace([[0.0, 0.0], [1.0, 0.0]], [[1.0], [0.0]], [[0.0, 1.0]], 0.0)
         I = np.eye(2)
         for sys in (sys1, sys2):
             for h in (0.1, 0.5, 1, 2):
                 Ad = I + h * sys.A
-                Bd = h * sys.B + 0.5 * h**2 * np.dot(sys.A, sys.B)
-                sysd = sample_system(sys, h, method='zoh')
+                Bd = h * sys.B + 0.5 * h ** 2 * np.dot(sys.A, sys.B)
+                sysd = sample_system(sys, h, method="zoh")
                 np.testing.assert_array_almost_equal(sysd.A, Ad)
                 np.testing.assert_array_almost_equal(sysd.B, Bd)
                 np.testing.assert_array_almost_equal(sysd.C, sys.C)
@@ -416,11 +426,11 @@ class TestDiscrete:
 
     def test_sample_tf(self, tsys):
         # double integrator
-        sys = TransferFunction(1, [1,0,0])
+        sys = TransferFunction(1, [1, 0, 0])
         for h in (0.1, 0.5, 1, 2):
-            numd_expected = 0.5 * h**2 * np.array([1.,1.])
-            dend_expected = np.array([1.,-2.,1.])
-            sysd = sample_system(sys, h, method='zoh')
+            numd_expected = 0.5 * h ** 2 * np.array([1.0, 1.0])
+            dend_expected = np.array([1.0, -2.0, 1.0])
+            sysd = sample_system(sys, h, method="zoh")
             assert sysd.dt == h
             numd = sysd.num[0][0]
             dend = sysd.den[0][0]
@@ -432,7 +442,7 @@ class TestDiscrete:
         sys = TransferFunction([1], [1, 0.5], 1)
         omega = [1, 2, 3]
         mag_out, phase_out, omega_out = bode(sys, omega)
-        H_z = list(map(lambda w: 1./(np.exp(1.j * w) + 0.5), omega))
+        H_z = list(map(lambda w: 1.0 / (np.exp(1.0j * w) + 0.5), omega))
         np.testing.assert_array_almost_equal(omega, omega_out)
         np.testing.assert_array_almost_equal(mag_out, np.absolute(H_z))
         np.testing.assert_array_almost_equal(phase_out, np.angle(H_z))

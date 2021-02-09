@@ -6,14 +6,15 @@ This set of unit tests covers the various operatons of the descfcn module, as
 well as some of the support functions associated with static nonlinearities.
 
 """
-
-import pytest
+import math
 
 import numpy as np
+import pytest
+
 import control as ct
-import math
-from control.descfcn import saturation_nonlinearity, \
-    friction_backlash_nonlinearity, relay_hysteresis_nonlinearity
+from control.descfcn import friction_backlash_nonlinearity
+from control.descfcn import relay_hysteresis_nonlinearity
+from control.descfcn import saturation_nonlinearity
 
 
 # Static function via a class
@@ -25,10 +26,10 @@ class saturation_class:
     # Describing function for a saturation function
     def describing_function(self, a):
         if -1 <= a and a <= 1:
-            return 1.
+            return 1.0
         else:
-            b = 1/a
-            return 2/math.pi * (math.asin(b) + b * math.sqrt(1 - b**2))
+            b = 1 / a
+            return 2 / math.pi * (math.asin(b) + b * math.sqrt(1 - b ** 2))
 
 
 # Static function without a class
@@ -40,8 +41,10 @@ def saturation(x):
 @pytest.fixture
 def satsys():
     satfcn = saturation_class()
+
     def _satfcn(t, x, u, params):
         return satfcn(u)
+
     return ct.NonlinearIOSystem(None, outfcn=_satfcn, input=1, output=1)
 
 
@@ -56,20 +59,22 @@ def test_static_nonlinear_call(satsys):
         assert satsys(x) == y
 
     # Test squeeze properties
-    assert satsys(0.) == 0.
-    assert satsys([0.], squeeze=True) == 0.
-    np.testing.assert_array_equal(satsys([0.]), [0.])
+    assert satsys(0.0) == 0.0
+    assert satsys([0.0], squeeze=True) == 0.0
+    np.testing.assert_array_equal(satsys([0.0]), [0.0])
 
     # Test SIMO nonlinearity
     def _simofcn(t, x, u, params):
         return np.array([np.cos(u), np.sin(u)])
+
     simo_sys = ct.NonlinearIOSystem(None, outfcn=_simofcn, input=1, output=2)
-    np.testing.assert_array_equal(simo_sys([0.]), [1, 0])
-    np.testing.assert_array_equal(simo_sys([0.], squeeze=True), [1, 0])
+    np.testing.assert_array_equal(simo_sys([0.0]), [1, 0])
+    np.testing.assert_array_equal(simo_sys([0.0], squeeze=True), [1, 0])
 
     # Test MISO nonlinearity
     def _misofcn(t, x, u, params={}):
         return np.array([np.sin(u[0]) * np.cos(u[1])])
+
     miso_sys = ct.NonlinearIOSystem(None, outfcn=_misofcn, input=2, output=1)
     np.testing.assert_array_equal(miso_sys([0, 0]), [0])
     np.testing.assert_array_equal(miso_sys([0, 0], squeeze=True), [0])
@@ -108,24 +113,27 @@ def test_saturation_describing_function(satsys):
     class my_saturation(ct.DescribingFunctionNonlinearity):
         def __call__(self, x):
             return saturation(x)
+
     satfcn_nometh = my_saturation()
     df_nometh = ct.describing_function(satfcn_nometh, amprange)
     np.testing.assert_almost_equal(df_nometh, df_anal, decimal=3)
 
 
-@pytest.mark.parametrize("fcn, amin, amax", [
-    [saturation_nonlinearity(1), 0, 10],
-    [friction_backlash_nonlinearity(2), 1, 10],
-    [relay_hysteresis_nonlinearity(1, 1), 3, 10],
-    ])
+@pytest.mark.parametrize(
+    "fcn, amin, amax",
+    [
+        [saturation_nonlinearity(1), 0, 10],
+        [friction_backlash_nonlinearity(2), 1, 10],
+        [relay_hysteresis_nonlinearity(1, 1), 3, 10],
+    ],
+)
 def test_describing_function(fcn, amin, amax):
     # Store the analytic describing function for comparison
     amprange = np.linspace(amin, amax, 100)
     df_anal = [fcn.describing_function(a) for a in amprange]
 
     # Compute describing function on an array of values
-    df_arr = ct.describing_function(
-        fcn, amprange, zero_check=False, try_method=False)
+    df_arr = ct.describing_function(fcn, amprange, zero_check=False, try_method=False)
     np.testing.assert_almost_equal(df_arr, df_anal, decimal=1)
 
     # Make sure the describing function method also works
@@ -155,8 +163,8 @@ def test_describing_function_plot():
     xsects = ct.describing_function_plot(H_larger, F_saturation, amp, omega)
     for a, w in xsects:
         np.testing.assert_almost_equal(
-            H_larger(1j*w),
-            -1/ct.describing_function(F_saturation, a), decimal=5)
+            H_larger(1j * w), -1 / ct.describing_function(F_saturation, a), decimal=5
+        )
 
     # Multiple intersections
     H_multiple = H_simple * ct.tf(*ct.pade(5, 4)) * 4
@@ -166,8 +174,9 @@ def test_describing_function_plot():
     xsects = ct.describing_function_plot(H_multiple, F_backlash, amp, omega)
     for a, w in xsects:
         np.testing.assert_almost_equal(
-            -1/ct.describing_function(F_backlash, a),
-            H_multiple(1j*w), decimal=5)
+            -1 / ct.describing_function(F_backlash, a), H_multiple(1j * w), decimal=5
+        )
+
 
 def test_describing_function_exceptions():
     # Describing function with non-zero bias

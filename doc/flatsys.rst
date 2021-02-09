@@ -11,7 +11,7 @@ Differentially flat systems
 Overview of differential flatness
 =================================
 
-A nonlinear differential equation of the form 
+A nonlinear differential equation of the form
 
 .. math::
     \dot x = f(x, u), \qquad x \in R^n, u \in R^m
@@ -95,7 +95,7 @@ derivatives as
     z(T) \\ \dot z(T) \\ \vdots \\ z^{(q)}(T) \\
   \end{bmatrix}
 
-This equation is a *linear* equation of the form 
+This equation is a *linear* equation of the form
 
 .. math::
    M \alpha = \begin{bmatrix} \bar z(0) \\ \bar z(T) \end{bmatrix}

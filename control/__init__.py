@@ -38,19 +38,23 @@
 # SUCH DAMAGE.
 #
 # $Id$
-
 """
 The Python Control Systems Library :mod:`control` provides common functions
 for analyzing and designing feedback control systems.
 """
-
 # Import functions from within the control system library
 # Note: the functions we use are specified as __all__ variables in the modules
 from .bdalg import *
+from .canonical import *
+from .config import *
+from .ctrlutil import *
 from .delay import *
 from .descfcn import *
 from .dtime import *
+from .exception import *
+from .frdata import *
 from .freqplot import *
+from .iosys import *
 from .lti import *
 from .margins import *
 from .mateqn import *
@@ -59,20 +63,14 @@ from .nichols import *
 from .phaseplot import *
 from .pzmap import *
 from .rlocus import *
+from .robust import *
+from .sisotool import *
 from .statefbk import *
 from .statesp import *
 from .timeresp import *
 from .xferfcn import *
-from .ctrlutil import *
-from .frdata import *
-from .canonical import *
-from .robust import *
-from .config import *
-from .sisotool import *
-from .iosys import *
 
 # Exceptions
-from .exception import *
 
 # Version information
 try:

@@ -1,15 +1,19 @@
 """robust_array_test.py"""
-
 import numpy as np
 import pytest
 
-from control import append, minreal, ss, tf
-from control.robust import augw, h2syn, hinfsyn, mixsyn
+from control import append
+from control import minreal
+from control import ss
+from control import tf
+from control.robust import augw
+from control.robust import h2syn
+from control.robust import hinfsyn
+from control.robust import mixsyn
 from control.tests.conftest import slycotonly
 
 
 class TestHinf:
-
     @slycotonly
     def testHinfsyn(self):
         """Test hinfsyn"""
@@ -30,8 +34,8 @@ class TestHinf:
 
     # TODO: add more interesting examples
 
-class TestH2:
 
+class TestH2:
     @slycotonly
     def testH2syn(self):
         """Test h2syn"""
@@ -63,18 +67,20 @@ class TestAugw:
         gmh = tf(minreal(g - h, verbose=False))
         if not (gmh.num[0][0] < self.TOL).all():
             maxnum = max(abs(gmh.num[0][0]))
-            raise AssertionError("systems not approx equal; "
-                                 "max num. coeff is {}\n"
-                                 "sys 1:\n"
-                                 "{}\n"
-                                 "sys 2:\n"
-                                 "{}".format(maxnum, g, h))
+            raise AssertionError(
+                "systems not approx equal; "
+                "max num. coeff is {}\n"
+                "sys 1:\n"
+                "{}\n"
+                "sys 2:\n"
+                "{}".format(maxnum, g, h)
+            )
 
     @slycotonly
     def testSisoW1(self):
         """SISO plant with S weighting"""
-        g = ss([-1.], [1.], [1.], [1.])
-        w1 = ss([-2], [2.], [1.], [2.])
+        g = ss([-1.0], [1.0], [1.0], [1.0])
+        w1 = ss([-2], [2.0], [1.0], [2.0])
         p = augw(g, w1)
         assert p.noutputs == 2
         assert p.ninputs == 2
@@ -90,8 +96,8 @@ class TestAugw:
     @slycotonly
     def testSisoW2(self):
         """SISO plant with KS weighting"""
-        g = ss([-1.], [1.], [1.], [1.])
-        w2 = ss([-2], [1.], [1.], [2.])
+        g = ss([-1.0], [1.0], [1.0], [1.0])
+        w2 = ss([-2], [1.0], [1.0], [2.0])
         p = augw(g, w2=w2)
         assert p.noutputs == 2
         assert p.ninputs == 2
@@ -107,8 +113,8 @@ class TestAugw:
     @slycotonly
     def testSisoW3(self):
         """SISO plant with T weighting"""
-        g = ss([-1.], [1.], [1.], [1.])
-        w3 = ss([-2], [1.], [1.], [2.])
+        g = ss([-1.0], [1.0], [1.0], [1.0])
+        w3 = ss([-2], [1.0], [1.0], [2.0])
         p = augw(g, w3=w3)
         assert p.noutputs == 2
         assert p.ninputs == 2
@@ -124,10 +130,10 @@ class TestAugw:
     @slycotonly
     def testSisoW123(self):
         """SISO plant with all weights"""
-        g = ss([-1.], [1.], [1.], [1.])
-        w1 = ss([-2.], [2.], [1.], [2.])
-        w2 = ss([-3.], [3.], [1.], [3.])
-        w3 = ss([-4.], [4.], [1.], [4.])
+        g = ss([-1.0], [1.0], [1.0], [1.0])
+        w1 = ss([-2.0], [2.0], [1.0], [2.0])
+        w2 = ss([-3.0], [3.0], [1.0], [3.0])
+        w3 = ss([-4.0], [4.0], [1.0], [4.0])
         p = augw(g, w1, w2, w3)
         assert p.noutputs == 4
         assert p.ninputs == 2
@@ -151,11 +157,13 @@ class TestAugw:
     @slycotonly
     def testMimoW1(self):
         """MIMO plant with S weighting"""
-        g = ss([[-1., -2], [-3, -4]],
-               [[1., 0.], [0., 1.]],
-               [[1., 0.], [0., 1.]],
-               [[1., 0.], [0., 1.]])
-        w1 = ss([-2], [2.], [1.], [2.])
+        g = ss(
+            [[-1.0, -2], [-3, -4]],
+            [[1.0, 0.0], [0.0, 1.0]],
+            [[1.0, 0.0], [0.0, 1.0]],
+            [[1.0, 0.0], [0.0, 1.0]],
+        )
+        w1 = ss([-2], [2.0], [1.0], [2.0])
         p = augw(g, w1)
         assert p.noutputs == 4
         assert p.ninputs == 4
@@ -183,11 +191,13 @@ class TestAugw:
     @slycotonly
     def testMimoW2(self):
         """MIMO plant with KS weighting"""
-        g = ss([[-1., -2], [-3, -4]],
-               [[1., 0.], [0., 1.]],
-               [[1., 0.], [0., 1.]],
-               [[1., 0.], [0., 1.]])
-        w2 = ss([-2], [2.], [1.], [2.])
+        g = ss(
+            [[-1.0, -2], [-3, -4]],
+            [[1.0, 0.0], [0.0, 1.0]],
+            [[1.0, 0.0], [0.0, 1.0]],
+            [[1.0, 0.0], [0.0, 1.0]],
+        )
+        w2 = ss([-2], [2.0], [1.0], [2.0])
         p = augw(g, w2=w2)
         assert p.noutputs == 4
         assert p.ninputs == 4
@@ -215,11 +225,13 @@ class TestAugw:
     @slycotonly
     def testMimoW3(self):
         """MIMO plant with T weighting"""
-        g = ss([[-1., -2], [-3, -4]],
-               [[1., 0.], [0., 1.]],
-               [[1., 0.], [0., 1.]],
-               [[1., 0.], [0., 1.]])
-        w3 = ss([-2], [2.], [1.], [2.])
+        g = ss(
+            [[-1.0, -2], [-3, -4]],
+            [[1.0, 0.0], [0.0, 1.0]],
+            [[1.0, 0.0], [0.0, 1.0]],
+            [[1.0, 0.0], [0.0, 1.0]],
+        )
+        w3 = ss([-2], [2.0], [1.0], [2.0])
         p = augw(g, w3=w3)
         assert p.noutputs == 4
         assert p.ninputs == 4
@@ -247,19 +259,23 @@ class TestAugw:
     @slycotonly
     def testMimoW123(self):
         """MIMO plant with all weights"""
-        g = ss([[-1., -2], [-3, -4]],
-               [[1., 0.], [0., 1.]],
-               [[1., 0.], [0., 1.]],
-               [[1., 0.], [0., 1.]])
+        g = ss(
+            [[-1.0, -2], [-3, -4]],
+            [[1.0, 0.0], [0.0, 1.0]],
+            [[1.0, 0.0], [0.0, 1.0]],
+            [[1.0, 0.0], [0.0, 1.0]],
+        )
         # this should be expaned to w1*I
-        w1 = ss([-2.], [2.], [1.], [2.])
+        w1 = ss([-2.0], [2.0], [1.0], [2.0])
         # diagonal weighting
-        w2 = append(ss([-3.], [3.], [1.], [3.]), ss([-4.], [4.], [1.], [4.]))
+        w2 = append(ss([-3.0], [3.0], [1.0], [3.0]), ss([-4.0], [4.0], [1.0], [4.0]))
         # full weighting
-        w3 = ss([[-4., -5], [-6, -7]],
-                [[2., 3.], [5., 7.]],
-                [[11., 13.], [17., 19.]],
-                [[23., 29.], [31., 37.]])
+        w3 = ss(
+            [[-4.0, -5], [-6, -7]],
+            [[2.0, 3.0], [5.0, 7.0]],
+            [[11.0, 13.0], [17.0, 19.0]],
+            [[23.0, 29.0], [31.0, 37.0]],
+        )
         p = augw(g, w1, w2, w3)
         assert p.noutputs == 8
         assert p.ninputs == 4
@@ -310,6 +326,7 @@ class TestAugw:
     def testErrors(self):
         """Error cases handled"""
         from control import augw, ss
+
         # no weights
         g1by1 = ss(-1, 1, 1, 0)
         g2by2 = ss(-np.eye(2), np.eye(2), np.eye(2), np.zeros((2, 2)))
